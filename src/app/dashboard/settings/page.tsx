@@ -1,351 +1,661 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
+import {
+  User,
+  Bell,
+  CreditCard,
+  Users,
+  Shield,
+  Save,
+  Camera,
+  Plus,
+  Mail,
+  Phone,
+  Building2,
+  Briefcase,
+  CheckCircle2,
+  Smartphone,
+  Monitor,
+  MapPin,
+  Clock,
+  Trash2,
+  LogOut,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  Send,
+  Crown,
+  Zap,
+  Star,
+  AlertCircle,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
-import {
-  User, Bell, CreditCard, Users, Shield, Settings,
-  CheckCircle, Mail, Phone, Building2, MapPin, Save,
-  Plus, Trash2, Eye, EyeOff, Key, Smartphone, Globe,
-} from "lucide-react";
+import { formatNaira } from "@/lib/utils";
 
-const nigerianStates = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
-  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT Abuja",
-  "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara",
-  "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers",
-  "Sokoto", "Taraba", "Yobe", "Zamfara",
+// ---------- Types ----------
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: "Active" | "Invited" | "Inactive";
+  joinedDate: string;
+}
+
+interface ActiveSession {
+  id: string;
+  device: string;
+  browser: string;
+  location: string;
+  ip: string;
+  lastActive: string;
+  current: boolean;
+}
+
+interface BillingHistoryItem {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  status: "Paid" | "Pending" | "Failed";
+}
+
+// ---------- Data ----------
+const teamMembers: TeamMember[] = [
+  {
+    id: "TM-001",
+    name: "Adebayo Ogunlesi",
+    email: "adebayo@buildng.com",
+    role: "Owner",
+    status: "Active",
+    joinedDate: "2024-06-01",
+  },
+  {
+    id: "TM-002",
+    name: "Chioma Nwosu",
+    email: "chioma@buildng.com",
+    role: "Admin",
+    status: "Active",
+    joinedDate: "2024-08-15",
+  },
+  {
+    id: "TM-003",
+    name: "Ibrahim Musa",
+    email: "ibrahim@buildng.com",
+    role: "Project Manager",
+    status: "Active",
+    joinedDate: "2025-01-10",
+  },
+  {
+    id: "TM-004",
+    name: "Funke Adeyemi",
+    email: "funke@buildng.com",
+    role: "Quantity Surveyor",
+    status: "Active",
+    joinedDate: "2025-03-01",
+  },
+  {
+    id: "TM-005",
+    name: "Emeka Obi",
+    email: "emeka@buildng.com",
+    role: "Site Engineer",
+    status: "Invited",
+    joinedDate: "2026-03-25",
+  },
 ];
 
-const notificationCategories = [
+const activeSessions: ActiveSession[] = [
   {
-    name: "Escrow Payments",
-    items: ["Payment released", "Milestone verified", "Dispute raised", "Funding received"],
+    id: "SS-001",
+    device: "MacBook Pro",
+    browser: "Chrome 122",
+    location: "Lagos, Nigeria",
+    ip: "102.89.xx.xx",
+    lastActive: "Now",
+    current: true,
   },
   {
-    name: "Materials Market",
-    items: ["Price alerts", "Group order updates", "Order delivered", "Price drop"],
+    id: "SS-002",
+    device: "iPhone 15 Pro",
+    browser: "Safari Mobile",
+    location: "Lagos, Nigeria",
+    ip: "102.89.xx.xx",
+    lastActive: "2 hours ago",
+    current: false,
   },
   {
-    name: "Quality Inspections",
-    items: ["Inspection scheduled", "Report ready", "Certificate issued", "Failed inspection"],
-  },
-  {
-    name: "Estate Portfolio",
-    items: ["Unit milestone", "Payment received", "Budget alert", "Weekly report"],
-  },
-  {
-    name: "Artisan Network",
-    items: ["New application", "Job completed", "Rating received", "Artisan available"],
-  },
-  {
-    name: "Permits",
-    items: ["Status update", "Document required", "Approval received", "Expiry warning"],
-  },
-  {
-    name: "Defect Management",
-    items: ["New defect reported", "Resolution update", "Warranty expiring", "Pattern detected"],
+    id: "SS-003",
+    device: "Windows Desktop",
+    browser: "Edge 121",
+    location: "Abuja, Nigeria",
+    ip: "197.210.xx.xx",
+    lastActive: "1 day ago",
+    current: false,
   },
 ];
 
-const teamMembers = [
-  { name: "Daniel Bealey", email: "daniel@buildng.com", role: "Admin", status: "Active" },
-  { name: "Chioma Okafor", email: "chioma@buildng.com", role: "Manager", status: "Active" },
-  { name: "Emeka Nwosu", email: "emeka@buildng.com", role: "Manager", status: "Active" },
-  { name: "Fatima Mohammed", email: "fatima@buildng.com", role: "Viewer", status: "Invited" },
+const billingHistory: BillingHistoryItem[] = [
+  {
+    id: "INV-001",
+    date: "2026-03-01",
+    description: "Professional Plan - March 2026",
+    amount: 150000,
+    status: "Paid",
+  },
+  {
+    id: "INV-002",
+    date: "2026-02-01",
+    description: "Professional Plan - February 2026",
+    amount: 150000,
+    status: "Paid",
+  },
+  {
+    id: "INV-003",
+    date: "2026-01-01",
+    description: "Professional Plan - January 2026",
+    amount: 150000,
+    status: "Paid",
+  },
+  {
+    id: "INV-004",
+    date: "2025-12-01",
+    description: "Professional Plan - December 2025",
+    amount: 150000,
+    status: "Paid",
+  },
+  {
+    id: "INV-005",
+    date: "2025-11-01",
+    description: "Professional Plan - November 2025",
+    amount: 150000,
+    status: "Paid",
+  },
 ];
 
-const billingHistory = [
-  { date: "Mar 1, 2026", description: "Professional Plan - Monthly", amount: "₦25,000", status: "Paid" },
-  { date: "Feb 1, 2026", description: "Professional Plan - Monthly", amount: "₦25,000", status: "Paid" },
-  { date: "Jan 1, 2026", description: "Professional Plan - Monthly", amount: "₦25,000", status: "Paid" },
-  { date: "Dec 1, 2025", description: "Professional Plan - Monthly", amount: "₦25,000", status: "Paid" },
-  { date: "Nov 1, 2025", description: "Professional Plan - Monthly", amount: "₦25,000", status: "Paid" },
-  { date: "Oct 15, 2025", description: "Plan Upgrade - Starter to Professional", amount: "₦12,500", status: "Paid" },
+const notificationSettings = [
+  {
+    module: "Projects",
+    options: [
+      { label: "Task assignments", key: "proj_task", enabled: true },
+      { label: "Milestone completions", key: "proj_milestone", enabled: true },
+      { label: "Schedule changes", key: "proj_schedule", enabled: false },
+      { label: "Daily progress digest", key: "proj_digest", enabled: true },
+    ],
+  },
+  {
+    module: "Materials",
+    options: [
+      { label: "Price alerts", key: "mat_price", enabled: true },
+      { label: "Order status updates", key: "mat_order", enabled: true },
+      { label: "Low stock warnings", key: "mat_stock", enabled: false },
+      { label: "Delivery notifications", key: "mat_delivery", enabled: true },
+    ],
+  },
+  {
+    module: "Permits",
+    options: [
+      { label: "Application status changes", key: "perm_status", enabled: true },
+      { label: "Document requests", key: "perm_docs", enabled: true },
+      { label: "Inspection reminders", key: "perm_inspect", enabled: true },
+      { label: "Expiry warnings", key: "perm_expiry", enabled: true },
+    ],
+  },
+  {
+    module: "Quality & Defects",
+    options: [
+      { label: "New defect reports", key: "qual_defect", enabled: true },
+      { label: "Defect resolutions", key: "qual_resolve", enabled: false },
+      { label: "Warranty expiry alerts", key: "qual_warranty", enabled: true },
+      { label: "Inspection results", key: "qual_inspect", enabled: true },
+    ],
+  },
+  {
+    module: "Payments & Escrow",
+    options: [
+      { label: "Payment received", key: "pay_received", enabled: true },
+      { label: "Milestone release requests", key: "pay_milestone", enabled: true },
+      { label: "Escrow disputes", key: "pay_dispute", enabled: true },
+      { label: "Invoice reminders", key: "pay_invoice", enabled: false },
+    ],
+  },
 ];
 
+const plans = [
+  {
+    name: "Starter",
+    price: 50000,
+    icon: Star,
+    color: "text-gray-600",
+    bg: "bg-gray-50",
+    features: [
+      "Up to 3 projects",
+      "5 team members",
+      "Basic reporting",
+      "Email support",
+      "Material tracking",
+    ],
+  },
+  {
+    name: "Professional",
+    price: 150000,
+    icon: Zap,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    current: true,
+    features: [
+      "Up to 15 projects",
+      "25 team members",
+      "Advanced reporting & analytics",
+      "Priority support",
+      "Permit navigator",
+      "Escrow management",
+      "Quality management",
+    ],
+  },
+  {
+    name: "Enterprise",
+    price: 500000,
+    icon: Crown,
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    features: [
+      "Unlimited projects",
+      "Unlimited team members",
+      "Custom reporting",
+      "Dedicated account manager",
+      "API access",
+      "White-label option",
+      "On-site training",
+      "SLA guarantee",
+    ],
+  },
+];
+
+// ---------- Component ----------
 export default function SettingsPage() {
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [notifStates, setNotifStates] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    notificationSettings.forEach((mod) => {
+      mod.options.forEach((opt) => {
+        initial[opt.key] = opt.enabled;
+      });
+    });
+    return initial;
+  });
+
+  const toggleNotif = (key: string) => {
+    setNotifStates((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div className="space-y-6 p-6">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-slate-500">Manage your account, notifications, and preferences</p>
+        <p className="text-muted-foreground">
+          Manage your account, team, and application preferences
+        </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      {/* Tabs */}
+      <Tabs defaultValue="profile" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="profile"><User className="mr-1.5 h-4 w-4" /> Profile</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="mr-1.5 h-4 w-4" /> Notifications</TabsTrigger>
-          <TabsTrigger value="billing"><CreditCard className="mr-1.5 h-4 w-4" /> Billing</TabsTrigger>
-          <TabsTrigger value="team"><Users className="mr-1.5 h-4 w-4" /> Team</TabsTrigger>
-          <TabsTrigger value="security"><Shield className="mr-1.5 h-4 w-4" /> Security</TabsTrigger>
+          <TabsTrigger value="profile" className="gap-2">
+            <User className="h-4 w-4" />
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </TabsTrigger>
+          <TabsTrigger value="billing" className="gap-2">
+            <CreditCard className="h-4 w-4" />
+            Billing
+          </TabsTrigger>
+          <TabsTrigger value="team" className="gap-2">
+            <Users className="h-4 w-4" />
+            Team
+          </TabsTrigger>
+          <TabsTrigger value="security" className="gap-2">
+            <Shield className="h-4 w-4" />
+            Security
+          </TabsTrigger>
         </TabsList>
 
         {/* Profile Tab */}
-        <TabsContent value="profile">
+        <TabsContent value="profile" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your personal and business details</CardDescription>
+              <CardTitle className="text-base">Personal Information</CardTitle>
+              <CardDescription>
+                Update your profile details and public information
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-2xl font-bold text-emerald-700">
-                  DB
-                </div>
-                <div>
-                  <Button variant="outline" size="sm">Change Photo</Button>
-                  <p className="mt-1 text-xs text-slate-500">JPG, PNG. Max 2MB.</p>
+              {/* Avatar */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl">
+                    AO
+                  </AvatarFallback>
+                </Avatar>
+                <div className="space-y-1">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Camera className="h-4 w-4" />
+                    Change Photo
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG or GIF. Max 2MB.
+                  </p>
                 </div>
               </div>
+
               <Separator />
+
+              {/* Form Fields */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
-                  <Input defaultValue="Daniel Bealey" />
+                  <Input defaultValue="Adebayo Ogunlesi" />
                 </div>
                 <div className="space-y-2">
                   <Label>Email Address</Label>
-                  <div className="flex items-center gap-2">
-                    <Input defaultValue="daniel@buildng.com" />
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      defaultValue="adebayo@buildng.com"
+                      className="pl-9"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Phone Number</Label>
-                  <div className="flex items-center gap-2">
-                    <Input defaultValue="+234 801 234 5678" />
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div className="flex gap-2">
+                    <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                      +234
+                    </div>
+                    <Input defaultValue="801 234 5678" className="flex-1" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Company Name</Label>
-                  <Input defaultValue="BuildNG Technologies Ltd" />
+                  <Label>Company</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      defaultValue="BuildNG Construction Ltd"
+                      className="pl-9"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Role</Label>
-                  <Select defaultValue="admin">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select defaultValue="md">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="client">Client / Property Owner</SelectItem>
-                      <SelectItem value="contractor">Contractor</SelectItem>
+                      <SelectItem value="md">Managing Director</SelectItem>
+                      <SelectItem value="pm">Project Manager</SelectItem>
+                      <SelectItem value="qs">Quantity Surveyor</SelectItem>
+                      <SelectItem value="architect">Architect</SelectItem>
                       <SelectItem value="engineer">Site Engineer</SelectItem>
-                      <SelectItem value="developer">Estate Developer</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="contractor">Contractor</SelectItem>
+                      <SelectItem value="developer">Developer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>State</Label>
-                  <Select defaultValue="Lagos">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {nigerianStates.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>NIN Verification</Label>
+                  <div className="flex items-center gap-2 rounded-md border bg-emerald-50 px-3 py-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span className="text-sm font-medium text-emerald-700">
+                      Verified
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      NIN: ****-****-1234
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <Label>NIN Verification</Label>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">Verified</Badge>
-                  <span className="text-sm text-slate-500">National Identity Number verified on Oct 15, 2025</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>CAC Registration</Label>
-                <div className="flex items-center gap-3">
-                  <Input defaultValue="RC-1234567" className="max-w-xs" />
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-700">Pending Verification</Badge>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button className="bg-emerald-600 hover:bg-emerald-700"><Save className="mr-2 h-4 w-4" /> Save Changes</Button>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end gap-3">
+              <Button variant="outline">Cancel</Button>
+              <Button className="gap-2">
+                <Save className="h-4 w-4" />
+                Save Changes
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 
         {/* Notifications Tab */}
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose how you want to be notified</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-slate-500" />
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-slate-500">Receive updates via email</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-slate-500" />
-                  <div>
-                    <p className="font-medium">SMS Notifications</p>
-                    <p className="text-sm text-slate-500">Get critical alerts via SMS (+234)</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Smartphone className="h-5 w-5 text-slate-500" />
-                  <div>
-                    <p className="font-medium">Push Notifications</p>
-                    <p className="text-sm text-slate-500">Browser push notifications</p>
-                  </div>
-                </div>
-                <Switch />
-              </div>
-              <Separator />
-              {notificationCategories.map((category) => (
-                <div key={category.name} className="space-y-3">
-                  <h4 className="font-medium text-slate-700">{category.name}</h4>
-                  <div className="grid gap-2 pl-4">
-                    {category.items.map((item) => (
-                      <div key={item} className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600">{item}</span>
-                        <Switch defaultChecked />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Billing Tab */}
-        <TabsContent value="billing">
-          <div className="space-y-6">
-            <Card className="border-emerald-200 bg-emerald-50">
-              <CardContent className="flex items-center justify-between p-6">
-                <div>
-                  <Badge className="bg-emerald-600">Current Plan</Badge>
-                  <h3 className="mt-2 text-xl font-bold">Professional</h3>
-                  <p className="text-slate-600">₦25,000 / month</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-slate-600">Next billing: April 1, 2026</p>
-                  <Button variant="outline" className="mt-2">Upgrade to Enterprise</Button>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
+        <TabsContent value="notifications" className="space-y-4">
+          {notificationSettings.map((module) => (
+            <Card key={module.module}>
               <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
+                <CardTitle className="text-base">{module.module}</CardTitle>
               </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="rounded bg-slate-100 p-2"><CreditCard className="h-5 w-5" /></div>
-                  <div>
-                    <p className="font-medium">Visa ending in 4532</p>
-                    <p className="text-sm text-slate-500">Expires 12/2027</p>
+              <CardContent className="space-y-4">
+                {module.options.map((option) => (
+                  <div
+                    key={option.key}
+                    className="flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">{option.label}</p>
+                    </div>
+                    <Switch
+                      checked={notifStates[option.key]}
+                      onCheckedChange={() => toggleNotif(option.key)}
+                    />
                   </div>
-                </div>
-                <Button variant="outline" size="sm">Update</Button>
+                ))}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader><CardTitle>Billing History</CardTitle></CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {billingHistory.map((item, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{item.date}</TableCell>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell className="font-medium">{item.amount}</TableCell>
-                        <TableCell><Badge variant="secondary" className="bg-green-100 text-green-700">{item.status}</Badge></TableCell>
-                        <TableCell><Button variant="ghost" size="sm">Invoice</Button></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+          ))}
+
+          <div className="flex justify-end">
+            <Button className="gap-2">
+              <Save className="h-4 w-4" />
+              Save Notification Preferences
+            </Button>
           </div>
         </TabsContent>
 
-        {/* Team Tab */}
-        <TabsContent value="team">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Team Members</CardTitle>
-                <CardDescription>Manage who has access to your organization</CardDescription>
+        {/* Billing Tab */}
+        <TabsContent value="billing" className="space-y-6">
+          {/* Current Plan */}
+          <Card className="border-emerald-200 bg-emerald-50/30">
+            <CardContent className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-4">
+                <div className="rounded-lg bg-emerald-100 p-3">
+                  <Zap className="h-6 w-6 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Professional Plan</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {formatNaira(150000)}/month &mdash; Renews April 1, 2026
+                  </p>
+                </div>
               </div>
-              <Button className="bg-emerald-600 hover:bg-emerald-700"><Plus className="mr-2 h-4 w-4" /> Invite Member</Button>
+              <Badge className="bg-emerald-100 text-emerald-700">Active</Badge>
+            </CardContent>
+          </Card>
+
+          {/* Plan Comparison */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {plans.map((plan) => (
+              <Card
+                key={plan.name}
+                className={plan.current ? "border-2 border-emerald-300" : ""}
+              >
+                {plan.current && (
+                  <div className="bg-emerald-600 px-4 py-1 text-center text-xs font-medium text-white">
+                    Current Plan
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  <div
+                    className={`mx-auto mb-2 rounded-full p-3 ${plan.bg}`}
+                  >
+                    <plan.icon className={`h-6 w-6 ${plan.color}`} />
+                  </div>
+                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  <div className="mt-1">
+                    <span className="text-2xl font-bold">
+                      {formatNaira(plan.price)}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      /month
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {plan.features.map((feat, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2 text-sm"
+                      >
+                        <Check
+                          className={`mt-0.5 h-4 w-4 shrink-0 ${plan.color}`}
+                        />
+                        {feat}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  {plan.current ? (
+                    <Button variant="outline" className="w-full" disabled>
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <Button
+                      variant={plan.name === "Enterprise" ? "default" : "outline"}
+                      className="w-full"
+                    >
+                      {plan.price > 150000 ? "Upgrade" : "Downgrade"}
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          {/* Payment Method */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Payment Method</CardTitle>
+              <CardDescription>
+                Manage your payment methods for subscription billing
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md bg-blue-100 p-2">
+                    <CreditCard className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">
+                      Visa ending in 4242
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Expires 08/2028
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Default</Badge>
+                  <Button variant="outline" size="sm">
+                    Edit
+                  </Button>
+                </div>
+              </div>
+              <Button variant="outline" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Payment Method
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Billing History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Billing History</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Member</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teamMembers.map((member) => (
-                    <TableRow key={member.email}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{member.name}</p>
-                          <p className="text-sm text-slate-500">{member.email}</p>
-                        </div>
+                  {billingHistory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">
+                        {item.id}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {item.date}
+                      </TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell className="font-medium">
+                        {formatNaira(item.amount)}
                       </TableCell>
                       <TableCell>
-                        <Select defaultValue={member.role.toLowerCase()}>
-                          <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={member.status === "Active" ? "secondary" : "outline"} className={member.status === "Active" ? "bg-green-100 text-green-700" : ""}>
-                          {member.status}
+                        <Badge
+                          className={
+                            item.status === "Paid"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.status === "Pending"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }
+                        >
+                          {item.status}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {member.role !== "Admin" && <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-red-500" /></Button>}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -355,72 +665,321 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* Team Tab */}
+        <TabsContent value="team" className="space-y-6">
+          {/* Team Members */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Team Members</CardTitle>
+                  <CardDescription>
+                    {teamMembers.length} of 25 seats used
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {teamMembers.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between rounded-lg border p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                        {member.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{member.name}</p>
+                        {member.status === "Invited" && (
+                          <Badge
+                            variant="outline"
+                            className="text-amber-600 border-amber-200 bg-amber-50"
+                          >
+                            Invited
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {member.email}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Select defaultValue={member.role.toLowerCase().replace(" ", "-")}>
+                      <SelectTrigger className="w-[160px] h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="owner">Owner</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="project-manager">
+                          Project Manager
+                        </SelectItem>
+                        <SelectItem value="quantity-surveyor">
+                          Quantity Surveyor
+                        </SelectItem>
+                        <SelectItem value="site-engineer">
+                          Site Engineer
+                        </SelectItem>
+                        <SelectItem value="viewer">Viewer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {member.role !== "Owner" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Invite Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Invite Team Member</CardTitle>
+              <CardDescription>
+                Send an invitation to join your BuildNG workspace
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-end gap-3">
+                <div className="flex-1 space-y-2">
+                  <Label>Email Address</Label>
+                  <Input placeholder="colleague@company.com" type="email" />
+                </div>
+                <div className="w-[180px] space-y-2">
+                  <Label>Role</Label>
+                  <Select defaultValue="project-manager">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="project-manager">
+                        Project Manager
+                      </SelectItem>
+                      <SelectItem value="quantity-surveyor">
+                        Quantity Surveyor
+                      </SelectItem>
+                      <SelectItem value="site-engineer">
+                        Site Engineer
+                      </SelectItem>
+                      <SelectItem value="viewer">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button className="gap-2">
+                  <Send className="h-4 w-4" />
+                  Send Invite
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Security Tab */}
-        <TabsContent value="security">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-              </CardHeader>
+        <TabsContent value="security" className="space-y-6">
+          {/* Change Password */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Change Password</CardTitle>
+              <CardDescription>
+                Update your password to keep your account secure
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label>Current Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter current password"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>New Password</Label>
+                <Input type="password" placeholder="Enter new password" />
+                <p className="text-xs text-muted-foreground">
+                  Minimum 8 characters with uppercase, lowercase, number, and
+                  special character.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Confirm New Password</Label>
+                <Input type="password" placeholder="Confirm new password" />
+              </div>
+              <Button className="gap-2">
+                <Key className="h-4 w-4" />
+                Update Password
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Two-Factor Authentication */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">
+                    Two-Factor Authentication
+                  </CardTitle>
+                  <CardDescription>
+                    Add an extra layer of security to your account
+                  </CardDescription>
+                </div>
+                <Switch
+                  checked={twoFactorEnabled}
+                  onCheckedChange={setTwoFactorEnabled}
+                />
+              </div>
+            </CardHeader>
+            {twoFactorEnabled && (
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Current Password</Label>
-                  <div className="relative">
-                    <Input type={showPassword ? "text" : "password"} placeholder="Enter current password" />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <EyeOff className="h-4 w-4 text-slate-400" /> : <Eye className="h-4 w-4 text-slate-400" />}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>New Password</Label>
-                  <Input type="password" placeholder="Enter new password" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Confirm new password" />
-                </div>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">Update Password</Button>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>Add an extra layer of security to your account</CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Key className="h-5 w-5 text-slate-500" />
+                <div className="flex items-start gap-3 rounded-lg bg-emerald-50 p-4">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
                   <div>
-                    <p className="font-medium">Authenticator App</p>
-                    <p className="text-sm text-slate-500">Use Google Authenticator or similar</p>
+                    <p className="text-sm font-medium text-emerald-800">
+                      2FA is enabled
+                    </p>
+                    <p className="text-xs text-emerald-700">
+                      Your account is protected with authenticator app
+                      verification.
+                    </p>
                   </div>
                 </div>
-                <Switch />
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" size="sm">
+                    Regenerate Recovery Codes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    Disable 2FA
+                  </Button>
+                </div>
               </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>Active Sessions</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { device: "Chrome on MacOS", location: "Lagos, Nigeria", time: "Active now", current: true },
-                  { device: "Safari on iPhone", location: "Lagos, Nigeria", time: "2 hours ago", current: false },
-                  { device: "Chrome on Windows", location: "Abuja, Nigeria", time: "1 day ago", current: false },
-                ].map((session, i) => (
-                  <div key={i} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center gap-3">
-                      <Globe className="h-5 w-5 text-slate-400" />
-                      <div>
-                        <p className="text-sm font-medium">{session.device} {session.current && <Badge variant="secondary" className="ml-1 bg-green-100 text-green-700">Current</Badge>}</p>
-                        <p className="text-xs text-slate-500">{session.location} · {session.time}</p>
+            )}
+            {!twoFactorEnabled && (
+              <CardContent>
+                <div className="flex items-start gap-3 rounded-lg bg-amber-50 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      2FA is not enabled
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      We strongly recommend enabling two-factor authentication
+                      for enhanced security.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Active Sessions */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Active Sessions</CardTitle>
+                  <CardDescription>
+                    Devices currently logged into your account
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-red-600 hover:text-red-700"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {activeSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className={`flex items-center justify-between rounded-lg border p-4 ${
+                    session.current ? "border-emerald-200 bg-emerald-50/30" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-gray-100 p-2">
+                      {session.device.includes("iPhone") ? (
+                        <Smartphone className="h-5 w-5 text-gray-600" />
+                      ) : (
+                        <Monitor className="h-5 w-5 text-gray-600" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">
+                          {session.device}
+                        </p>
+                        {session.current && (
+                          <Badge className="bg-emerald-100 text-emerald-700 text-xs">
+                            This device
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>{session.browser}</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {session.location}
+                        </span>
+                        <span>IP: {session.ip}</span>
                       </div>
                     </div>
-                    {!session.current && <Button variant="ghost" size="sm" className="text-red-500">Revoke</Button>}
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      {session.lastActive}
+                    </span>
+                    {!session.current && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-red-600 hover:text-red-700"
+                      >
+                        Revoke
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
