@@ -1,0 +1,823 @@
+// BuildNG - Nigerian Construction Project Management Platform
+// Prisma Schema for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  CLIENT
+  CONTRACTOR
+  ENGINEER
+  DEVELOPER
+  ESTATE_MANAGER
+  ARTISAN
+  ADMIN
+}
+
+enum NigerianState {
+  LAGOS
+  ABUJA
+  RIVERS
+  OGUN
+  OYO
+  KADUNA
+  KANO
+  ENUGU
+  DELTA
+  ANAMBRA
+  EDO
+  ONDO
+  KWARA
+  BORNO
+  BAUCHI
+  OSUN
+  IMO
+  ABIA
+  CROSS_RIVER
+  AKWA_IBOM
+  PLATEAU
+  NIGER
+  BENUE
+  EKITI
+  BAYELSA
+  EBONYI
+  GOMBE
+  JIGAWA
+  KEBBI
+  KOGI
+  NASARAWA
+  SOKOTO
+  TARABA
+  YOBE
+  ZAMFARA
+}
+
+enum EscrowStatus {
+  DRAFT
+  FUNDED
+  IN_PROGRESS
+  DISPUTED
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  VERIFIED
+  REJECTED
+  RELEASED
+}
+
+enum MaterialCategory {
+  CEMENT
+  STEEL
+  ROOFING
+  BLOCKS
+  SAND
+  GRAVEL
+  TIMBER
+  PLUMBING
+  ELECTRICAL
+  PAINT
+  TILES
+  GLASS
+  DOORS
+  WINDOWS
+  FINISHING
+  OTHER
+}
+
+enum InspectionStage {
+  FOUNDATION
+  DPC
+  LINTEL
+  DECKING
+  ROOFING
+  PLASTERING
+  FINISHING
+  FINAL
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  PASSED
+  FAILED
+  REQUIRES_RECHECK
+  CANCELLED
+}
+
+enum EstateUnitStatus {
+  PLANNING
+  UNDER_CONSTRUCTION
+  COMPLETED
+  SOLD
+  HANDED_OVER
+}
+
+enum PermitStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ADDITIONAL_INFO_REQUIRED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum PermitType {
+  BUILDING_PLAN_APPROVAL
+  ENVIRONMENTAL_IMPACT
+  CONSTRUCTION_PERMIT
+  OCCUPANCY_CERTIFICATE
+  DEMOLITION_PERMIT
+  RENOVATION_PERMIT
+  LAND_USE_CHANGE
+}
+
+enum DefectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DefectStatus {
+  REPORTED
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REOPENED
+}
+
+enum DefectCategory {
+  STRUCTURAL
+  PLUMBING
+  ELECTRICAL
+  ROOFING
+  PAINTING
+  TILING
+  DOORS_WINDOWS
+  DRAINAGE
+  FINISHING
+  OTHER
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  FILLED
+  COMPLETED
+  CANCELLED
+}
+
+enum ArtisanSkillType {
+  BRICKLAYER
+  CARPENTER
+  ELECTRICIAN
+  PLUMBER
+  PAINTER
+  TILER
+  WELDER
+  IRON_BENDER
+  POP_INSTALLER
+  ALUMINIUM_FABRICATOR
+  ROOFER
+  MASON
+  GLAZIER
+  HVAC_TECHNICIAN
+  GENERAL_LABOURER
+  OTHER
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+// ============================================================================
+// NEXTAUTH MODELS
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================================
+// USER
+// ============================================================================
+
+model User {
+  id          String        @id @default(cuid())
+  email       String        @unique
+  name        String
+  phone       String?
+  password    String?
+  role        UserRole      @default(CLIENT)
+  state       NigerianState?
+  city        String?
+  nin         String?       @unique
+  ninVerified Boolean       @default(false)
+  avatar      String?
+  company     String?
+  cacNumber   String?
+  bio         String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Escrow relations
+  escrowProjectsAsClient     EscrowProject[]    @relation("EscrowClient")
+  escrowProjectsAsContractor EscrowProject[]    @relation("EscrowContractor")
+  escrowProjectsAsEngineer   EscrowProject[]    @relation("EscrowEngineer")
+  milestonesVerified         EscrowMilestone[]  @relation("MilestoneVerifier")
+
+  // Material relations
+  reportedPrices MaterialPrice[]
+
+  // Group buy relations
+  groupBuyParticipations GroupBuyParticipant[]
+
+  // Quality relations
+  qualityProjectsAsClient   QualityProject[] @relation("QualityClient")
+  qualityProjectsAsEngineer QualityProject[] @relation("QualityEngineer")
+  inspectionsAsEngineer     Inspection[]
+
+  // Estate relations
+  estatesAsDeveloper Estate[]
+
+  // Estate unit relations
+  estateUnitsAsContractor EstateUnit[]
+
+  // Artisan relations
+  artisanProfile Artisan?
+
+  // Job relations
+  postedJobs JobPost[]
+
+  // Permit relations
+  permitApplications PermitApplication[]
+
+  // Property relations
+  propertiesAsOwner     Property[] @relation("PropertyOwner")
+  propertiesAsDeveloper Property[] @relation("PropertyDeveloper")
+
+  // Defect relations
+  defectsReported DefectReport[] @relation("DefectReporter")
+  defectsAssigned DefectReport[] @relation("DefectAssignedContractor")
+
+  // Notification relations
+  notifications Notification[]
+
+  @@index([role])
+  @@index([state])
+  @@index([ninVerified])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// ESCROW & PAYMENTS
+// ============================================================================
+
+model EscrowProject {
+  id                 String       @id @default(cuid())
+  reference          String       @unique
+  title              String
+  description        String?      @db.Text
+  totalAmountKobo    BigInt
+  releasedAmountKobo BigInt       @default(0)
+  status             EscrowStatus @default(DRAFT)
+  clientId           String
+  contractorId       String
+  engineerId         String?
+  state              NigerianState
+  city               String
+  address            String?      @db.Text
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  client     User @relation("EscrowClient", fields: [clientId], references: [id])
+  contractor User @relation("EscrowContractor", fields: [contractorId], references: [id])
+  engineer   User? @relation("EscrowEngineer", fields: [engineerId], references: [id])
+
+  milestones   EscrowMilestone[]
+  transactions EscrowTransaction[]
+
+  @@index([clientId])
+  @@index([contractorId])
+  @@index([engineerId])
+  @@index([status])
+  @@index([state])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model EscrowMilestone {
+  id           String          @id @default(cuid())
+  projectId    String
+  name         String
+  description  String?         @db.Text
+  amountKobo   BigInt
+  orderIndex   Int
+  status       MilestoneStatus @default(PENDING)
+  verifiedAt   DateTime?
+  verifiedById String?
+  checklist    Json?
+  photos       Json?
+
+  project    EscrowProject      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  verifiedBy User?              @relation("MilestoneVerifier", fields: [verifiedById], references: [id])
+  transactions EscrowTransaction[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([verifiedById])
+  @@index([projectId, orderIndex])
+}
+
+model EscrowTransaction {
+  id          String        @id @default(cuid())
+  projectId   String
+  milestoneId String?
+  type        String
+  amountKobo  BigInt
+  reference   String        @unique
+  status      PaymentStatus @default(UNPAID)
+  description String?
+  createdAt   DateTime      @default(now())
+
+  project   EscrowProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone EscrowMilestone? @relation(fields: [milestoneId], references: [id])
+
+  @@index([projectId])
+  @@index([milestoneId])
+  @@index([reference])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// MATERIALS & GROUP BUY
+// ============================================================================
+
+model Material {
+  id          String           @id @default(cuid())
+  name        String
+  brand       String?
+  category    MaterialCategory
+  unit        String
+  description String?          @db.Text
+
+  prices         MaterialPrice[]
+  groupBuyOrders GroupBuyOrder[]
+
+  @@index([category])
+  @@index([name])
+}
+
+model MaterialPrice {
+  id           String        @id @default(cuid())
+  materialId   String
+  priceKobo    BigInt
+  city         String
+  state        NigerianState
+  supplier     String?
+  reportedById String
+  verifiedAt   DateTime?
+  createdAt    DateTime      @default(now())
+
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  reportedBy User     @relation(fields: [reportedById], references: [id])
+
+  @@index([materialId])
+  @@index([state])
+  @@index([state, city])
+  @@index([reportedById])
+  @@index([createdAt])
+}
+
+model GroupBuyOrder {
+  id             String        @id @default(cuid())
+  reference      String        @unique
+  materialId     String
+  targetQuantity Int
+  currentQuantity Int          @default(0)
+  unitPriceKobo  BigInt
+  savingsPercent Float?
+  deadline       DateTime
+  status         String        @default("OPEN")
+  state          NigerianState
+  city           String
+  createdAt      DateTime      @default(now())
+
+  material     Material              @relation(fields: [materialId], references: [id])
+  participants GroupBuyParticipant[]
+
+  @@index([materialId])
+  @@index([state])
+  @@index([status])
+  @@index([deadline])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model GroupBuyParticipant {
+  id       String @id @default(cuid())
+  orderId  String
+  userId   String
+  quantity Int
+  status   String @default("JOINED")
+  joinedAt DateTime @default(now())
+
+  order GroupBuyOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id])
+
+  @@unique([orderId, userId])
+  @@index([orderId])
+  @@index([userId])
+}
+
+// ============================================================================
+// QUALITY ASSURANCE & INSPECTIONS
+// ============================================================================
+
+model QualityProject {
+  id                String        @id @default(cuid())
+  reference         String        @unique
+  title             String
+  address           String        @db.Text
+  state             NigerianState
+  city              String
+  clientId          String
+  engineerId        String?
+  overallScore      Float?
+  certified         Boolean       @default(false)
+  certifiedAt       DateTime?
+  certificateNumber String?       @unique
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  client     User         @relation("QualityClient", fields: [clientId], references: [id])
+  engineer   User?        @relation("QualityEngineer", fields: [engineerId], references: [id])
+  inspections Inspection[]
+
+  @@index([clientId])
+  @@index([engineerId])
+  @@index([state])
+  @@index([certified])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model Inspection {
+  id            String           @id @default(cuid())
+  projectId     String
+  stage         InspectionStage
+  scheduledDate DateTime
+  completedDate DateTime?
+  status        InspectionStatus @default(SCHEDULED)
+  score         Float?
+  engineerId    String
+  notes         String?          @db.Text
+  checklist     Json?
+  photos        Json?
+
+  project  QualityProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  engineer User           @relation(fields: [engineerId], references: [id])
+
+  @@index([projectId])
+  @@index([engineerId])
+  @@index([status])
+  @@index([stage])
+  @@index([scheduledDate])
+  @@index([projectId, stage])
+}
+
+// ============================================================================
+// ESTATE MANAGEMENT
+// ============================================================================
+
+model Estate {
+  id            String        @id @default(cuid())
+  name          String
+  address       String        @db.Text
+  state         NigerianState
+  city          String
+  totalUnits    Int
+  developerId   String
+  totalValueKobo BigInt?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  developer  User         @relation(fields: [developerId], references: [id])
+  units      EstateUnit[]
+  properties Property[]
+
+  @@index([developerId])
+  @@index([state])
+  @@index([createdAt])
+}
+
+model EstateUnit {
+  id                String           @id @default(cuid())
+  estateId          String
+  unitNumber        String
+  type              String
+  status            EstateUnitStatus @default(PLANNING)
+  budgetKobo        BigInt?
+  actualSpendKobo   BigInt?          @default(0)
+  constructionStage String?
+  progressPercent   Float            @default(0)
+  contractorId      String?
+  buyerName         String?
+  buyerPhone        String?
+  buyerEmail        String?
+  totalPriceKobo    BigInt?
+  paidAmountKobo    BigInt?          @default(0)
+  paymentStatus     PaymentStatus    @default(UNPAID)
+
+  estate     Estate     @relation(fields: [estateId], references: [id], onDelete: Cascade)
+  contractor User?      @relation(fields: [contractorId], references: [id])
+  properties Property[]
+
+  @@unique([estateId, unitNumber])
+  @@index([estateId])
+  @@index([contractorId])
+  @@index([status])
+  @@index([paymentStatus])
+}
+
+// ============================================================================
+// ARTISAN MARKETPLACE
+// ============================================================================
+
+model Artisan {
+  id              String          @id @default(cuid())
+  userId          String          @unique
+  primarySkill    ArtisanSkillType
+  skills          Json?
+  yearsExperience Int             @default(0)
+  dailyRateKobo   BigInt?
+  bio             String?         @db.Text
+  available       Boolean         @default(true)
+  rating          Float           @default(0)
+  totalJobs       Int             @default(0)
+  totalReviews    Int             @default(0)
+  ninVerified     Boolean         @default(false)
+  portfolio       Json?
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  @@index([primarySkill])
+  @@index([available])
+  @@index([rating])
+  @@index([userId])
+  @@index([primarySkill, available])
+}
+
+model JobPost {
+  id            String          @id @default(cuid())
+  reference     String          @unique
+  title         String
+  description   String          @db.Text
+  skill         ArtisanSkillType
+  location      String
+  state         NigerianState
+  city          String
+  dailyRateKobo BigInt?
+  durationDays  Int?
+  workersNeeded Int             @default(1)
+  postedById    String
+  status        JobStatus       @default(OPEN)
+  startDate     DateTime?
+  createdAt     DateTime        @default(now())
+
+  postedBy     User              @relation(fields: [postedById], references: [id])
+  applications JobApplication[]
+
+  @@index([postedById])
+  @@index([skill])
+  @@index([state])
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
+  @@index([skill, state, status])
+}
+
+model JobApplication {
+  id        String   @id @default(cuid())
+  jobId     String
+  artisanId String
+  status    String   @default("PENDING")
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  job     JobPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  artisan Artisan @relation(fields: [artisanId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, artisanId])
+  @@index([jobId])
+  @@index([artisanId])
+  @@index([status])
+}
+
+// ============================================================================
+// PERMITS & REGULATORY
+// ============================================================================
+
+model PermitApplication {
+  id              String        @id @default(cuid())
+  reference       String        @unique
+  title           String
+  type            PermitType
+  state           NigerianState
+  city            String
+  address         String        @db.Text
+  regulatoryBody  String
+  status          PermitStatus  @default(DRAFT)
+  applicantId     String
+  totalFeeKobo    BigInt?
+  paidFeeKobo     BigInt?       @default(0)
+  currentStep     Int           @default(1)
+  totalSteps      Int           @default(1)
+  submittedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  applicant User              @relation(fields: [applicantId], references: [id])
+  documents PermitDocument[]
+
+  @@index([applicantId])
+  @@index([type])
+  @@index([state])
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model PermitDocument {
+  id            String   @id @default(cuid())
+  applicationId String
+  name          String
+  status        String   @default("PENDING")
+  fileUrl       String?
+  uploadedAt    DateTime?
+  notes         String?  @db.Text
+
+  application PermitApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([status])
+}
+
+// ============================================================================
+// POST-CONSTRUCTION & PROPERTY MANAGEMENT
+// ============================================================================
+
+model Property {
+  id           String    @id @default(cuid())
+  name         String
+  address      String    @db.Text
+  estateId     String?
+  unitId       String?
+  ownerId      String
+  developerId  String?
+  handoverDate DateTime?
+  createdAt    DateTime  @default(now())
+
+  estate    Estate?     @relation(fields: [estateId], references: [id])
+  unit      EstateUnit? @relation(fields: [unitId], references: [id])
+  owner     User        @relation("PropertyOwner", fields: [ownerId], references: [id])
+  developer User?       @relation("PropertyDeveloper", fields: [developerId], references: [id])
+
+  defects        DefectReport[]
+  warrantyItems  WarrantyItem[]
+
+  @@index([ownerId])
+  @@index([developerId])
+  @@index([estateId])
+  @@index([unitId])
+  @@index([createdAt])
+}
+
+model DefectReport {
+  id                   String         @id @default(cuid())
+  reference            String         @unique
+  title                String
+  description          String         @db.Text
+  propertyId           String
+  category             DefectCategory
+  priority             DefectPriority @default(MEDIUM)
+  status               DefectStatus   @default(REPORTED)
+  reportedById         String
+  assignedContractorId String?
+  photos               Json?
+  resolvedAt           DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  property           Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reportedBy         User     @relation("DefectReporter", fields: [reportedById], references: [id])
+  assignedContractor User?    @relation("DefectAssignedContractor", fields: [assignedContractorId], references: [id])
+
+  @@index([propertyId])
+  @@index([reportedById])
+  @@index([assignedContractorId])
+  @@index([category])
+  @@index([priority])
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model WarrantyItem {
+  id            String   @id @default(cuid())
+  propertyId    String
+  component     String
+  warrantyYears Int
+  startDate     DateTime
+  expiryDate    DateTime
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([expiryDate])
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String   @db.Text
+  data      Json?
+  read      Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([type])
+  @@index([createdAt])
+}
