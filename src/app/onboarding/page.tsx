@@ -98,7 +98,7 @@ const nigerianStates: Record<string, string[]> = {
   Osun: ["Osogbo", "Ile-Ife", "Ilesa", "Ede", "Iwo"],
   Kwara: ["Ilorin", "Offa", "Jebba", "Lafiagi", "Patigi"],
   Ondo: ["Akure", "Ondo", "Owo", "Ikare", "Okitipupa"],
-  Cross River: ["Calabar", "Ogoja", "Ikom", "Obudu", "Ugep"],
+  "Cross River": ["Calabar", "Ogoja", "Ikom", "Obudu", "Ugep"],
   Abia: ["Aba", "Umuahia", "Ohafia", "Arochukwu", "Isuikwuato"],
   Imo: ["Owerri", "Orlu", "Okigwe", "Oguta", "Mbaise"],
   Plateau: ["Jos", "Bukuru", "Pankshin", "Shendam", "Langtang"],

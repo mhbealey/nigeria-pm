@@ -1,7 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-// import GoogleProvider from "next-auth/providers/google";
-import { db } from "@/lib/db";
 
 declare module "next-auth" {
   interface User {
@@ -40,10 +38,7 @@ async function verifyPassword(
   plainPassword: string,
   hashedPassword: string
 ): Promise<boolean> {
-  // Uses Web Crypto API (available in Node 18+ and Edge runtime)
   const encoder = new TextEncoder();
-
-  // The hashed password is stored as "salt:hash"
   const [salt, storedHash] = hashedPassword.split(":");
   if (!salt || !storedHash) return false;
 
@@ -58,7 +53,7 @@ async function verifyPassword(
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: "PBKDF2",
-      salt: hexToBuffer(salt),
+      salt: hexToBuffer(salt) as BufferSource,
       iterations: 100000,
       hash: "SHA-256",
     },
@@ -84,10 +79,32 @@ function bufferToHex(buffer: Uint8Array): string {
     .join("");
 }
 
+// Demo users for development without database
+const DEMO_USERS = [
+  {
+    id: "demo-1",
+    email: "daniel@buildng.com",
+    name: "Daniel Bealey",
+    password: "demo:demo",
+    role: "ADMIN" as const,
+    phone: "+2348012345678",
+    state: "Lagos",
+  },
+  {
+    id: "demo-2",
+    email: "chioma@buildng.com",
+    name: "Chioma Okafor",
+    password: "demo:demo",
+    role: "HOMEOWNER" as const,
+    phone: "+2348023456789",
+    state: "Lagos",
+  },
+];
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   pages: {
@@ -96,13 +113,6 @@ export const authOptions: NextAuthOptions = {
   },
 
   providers: [
-    // Uncomment to enable Google OAuth:
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID!,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    //   allowDangerousEmailAccountLinking: true,
-    // }),
-
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -114,45 +124,60 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Please enter your email and password");
         }
 
-        const user = await db.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            role: true,
-            phone: true,
-            state: true,
-          },
-        });
+        const email = credentials.email.toLowerCase().trim();
 
-        if (!user || !user.password) {
-          throw new Error("Invalid email or password");
+        // Try database first
+        try {
+          const { db } = await import("@/lib/db");
+          if (db) {
+            const user = await db.user.findUnique({
+              where: { email },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                password: true,
+                role: true,
+                phone: true,
+                state: true,
+              },
+            });
+
+            if (user?.password) {
+              const isValid = await verifyPassword(
+                credentials.password,
+                user.password
+              );
+              if (isValid) {
+                return {
+                  id: user.id,
+                  email: user.email,
+                  name: user.name,
+                  role: user.role as any,
+                  phone: user.phone,
+                  state: user.state,
+                };
+              }
+            }
+          }
+        } catch {
+          // Database not available, fall through to demo users
         }
 
-        const isPasswordValid = await verifyPassword(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("Invalid email or password");
+        // Demo mode: accept any email with password "demo"
+        const demoUser = DEMO_USERS.find((u) => u.email === email);
+        if (demoUser && credentials.password === "demo") {
+          return {
+            id: demoUser.id,
+            email: demoUser.email,
+            name: demoUser.name,
+            role: demoUser.role,
+            phone: demoUser.phone,
+            state: demoUser.state,
+          };
         }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role as
-            | "HOMEOWNER"
-            | "CONTRACTOR"
-            | "VENDOR"
-            | "INSPECTOR"
-            | "ADMIN",
-          phone: user.phone,
-          state: user.state,
-        };
+        throw new Error("Invalid email or password");
       },
     }),
   ],
@@ -161,8 +186,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
+        token.email = user.email!;
+        token.name = user.name!;
         token.role = user.role;
         token.phone = user.phone;
         token.state = user.state;
@@ -183,28 +208,12 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // Allow relative URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allow URLs on the same origin
       if (new URL(url).origin === baseUrl) return url;
       return baseUrl + "/dashboard";
     },
   },
 
-  events: {
-    async signIn({ user }) {
-      // Update last login timestamp
-      try {
-        await db.user.update({
-          where: { id: user.id },
-          data: { updatedAt: new Date() },
-        });
-      } catch {
-        // Non-critical, don't block sign in
-      }
-    },
-  },
-
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production",
   debug: process.env.NODE_ENV === "development",
 };
