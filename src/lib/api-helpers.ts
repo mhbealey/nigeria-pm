@@ -5,12 +5,7 @@ import { NextResponse } from "next/server";
 interface ApiSuccessResponse<T = unknown> {
   success: true;
   data: T;
-  meta?: {
-    page: number;
-    perPage: number;
-    total: number;
-    totalPages: number;
-  };
+  meta?: Record<string, unknown>;
 }
 
 interface ApiErrorResponse {
@@ -18,34 +13,32 @@ interface ApiErrorResponse {
   error: {
     message: string;
     code?: string;
-    details?: Record<string, string[]>;
+    details?: unknown;
   };
 }
 
 export function apiResponse<T>(
   data: T,
   status: number = 200,
-  meta?: ApiSuccessResponse["meta"]
+  meta?: Record<string, unknown>
 ): NextResponse<ApiSuccessResponse<T>> {
   const body: ApiSuccessResponse<T> = { success: true, data };
-  if (meta) {
-    body.meta = meta;
-  }
+  if (meta) body.meta = meta;
   return NextResponse.json(body, { status });
 }
 
 export function apiError(
   message: string,
   status: number = 400,
-  details?: Record<string, string[]>,
-  code?: string
+  code?: string,
+  details?: unknown
 ): NextResponse<ApiErrorResponse> {
   const body: ApiErrorResponse = {
     success: false,
     error: { message },
   };
   if (code) body.error.code = code;
-  if (details) body.error.details = details;
+  if (details !== undefined) body.error.details = details;
   return NextResponse.json(body, { status });
 }
 
@@ -54,9 +47,9 @@ export function apiError(
 export interface ParsedSearchParams {
   page: number;
   perPage: number;
-  sort: string;
-  order: "asc" | "desc";
   search: string;
+  sortBy: string;
+  sortOrder: "asc" | "desc";
   filters: Record<string, string>;
 }
 
@@ -68,39 +61,46 @@ export function parseSearchParams(url: URL): ParsedSearchParams {
     100,
     Math.max(1, parseInt(params.get("perPage") || params.get("per_page") || "20", 10) || 20)
   );
-  const sort = params.get("sort") || "createdAt";
-  const rawOrder = (params.get("order") || "desc").toLowerCase();
-  const order: "asc" | "desc" = rawOrder === "asc" ? "asc" : "desc";
   const search = (params.get("search") || params.get("q") || "").trim();
+  const sortBy = params.get("sortBy") || params.get("sort_by") || "createdAt";
+  const rawOrder = (params.get("sortOrder") || params.get("sort_order") || "desc").toLowerCase();
+  const sortOrder: "asc" | "desc" = rawOrder === "asc" ? "asc" : "desc";
 
-  // Collect all params that are not reserved pagination/sort keys
+  // Collect all params that aren't pagination/sort/search into filters
   const reservedKeys = new Set([
     "page",
     "perPage",
     "per_page",
-    "sort",
-    "order",
     "search",
     "q",
+    "sortBy",
+    "sort_by",
+    "sortOrder",
+    "sort_order",
   ]);
+
   const filters: Record<string, string> = {};
   params.forEach((value, key) => {
-    if (!reservedKeys.has(key)) {
-      filters[key] = value;
+    if (!reservedKeys.has(key) && value.trim().length > 0) {
+      filters[key] = value.trim();
     }
   });
 
-  return { page, perPage, sort, order, search, filters };
+  return { page, perPage, search, sortBy, sortOrder, filters };
 }
 
 // ── Client-Side Pagination Helper ────────────────────────────────────
 
 export interface PaginatedResult<T> {
   items: T[];
-  page: number;
-  perPage: number;
-  total: number;
-  totalPages: number;
+  pagination: {
+    page: number;
+    perPage: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }
 
 export function paginate<T>(
@@ -108,47 +108,44 @@ export function paginate<T>(
   page: number,
   perPage: number
 ): PaginatedResult<T> {
-  const safePage = Math.max(1, page);
-  const safePerPage = Math.max(1, Math.min(100, perPage));
   const total = items.length;
-  const totalPages = Math.max(1, Math.ceil(total / safePerPage));
-  const clampedPage = Math.min(safePage, totalPages);
-  const startIndex = (clampedPage - 1) * safePerPage;
-  const paginatedItems = items.slice(startIndex, startIndex + safePerPage);
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (safePage - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paginatedItems = items.slice(startIndex, endIndex);
 
   return {
     items: paginatedItems,
-    page: clampedPage,
-    perPage: safePerPage,
-    total,
-    totalPages,
+    pagination: {
+      page: safePage,
+      perPage,
+      total,
+      totalPages,
+      hasNext: safePage < totalPages,
+      hasPrev: safePage > 1,
+    },
   };
 }
 
 // ── ID Generator ─────────────────────────────────────────────────────
 
 export function generateId(prefix: string): string {
-  const chars = "0123456789abcdef";
-  const segment = (): string => {
-    let result = "";
-    for (let i = 0; i < 4; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return result;
-  };
+  const segment = (): string =>
+    Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${segment()}-${segment()}`;
 }
 
-// ── Sort Helper ──────────────────────────────────────────────────────
+// ── Sorting Helper ───────────────────────────────────────────────────
 
-export function sortItems<T>(
+export function sortItems<T extends Record<string, unknown>>(
   items: T[],
-  sortKey: string,
-  order: "asc" | "desc"
+  sortBy: string,
+  sortOrder: "asc" | "desc"
 ): T[] {
   return [...items].sort((a, b) => {
-    const aVal = (a as Record<string, unknown>)[sortKey];
-    const bVal = (b as Record<string, unknown>)[sortKey];
+    const aVal = a[sortBy];
+    const bVal = b[sortBy];
 
     if (aVal === bVal) return 0;
     if (aVal === null || aVal === undefined) return 1;
@@ -159,35 +156,61 @@ export function sortItems<T>(
       comparison = aVal.localeCompare(bVal);
     } else if (typeof aVal === "number" && typeof bVal === "number") {
       comparison = aVal - bVal;
-    } else if (aVal instanceof Date && bVal instanceof Date) {
-      comparison = aVal.getTime() - bVal.getTime();
     } else {
       comparison = String(aVal).localeCompare(String(bVal));
     }
 
-    return order === "asc" ? comparison : -comparison;
+    return sortOrder === "desc" ? -comparison : comparison;
   });
 }
 
 // ── Filter Helper ────────────────────────────────────────────────────
 
-export function filterItems<T>(
+export function filterItems<T extends Record<string, unknown>>(
   items: T[],
   search: string,
-  searchableKeys: (keyof T)[]
+  searchableFields: (keyof T)[]
 ): T[] {
   if (!search) return items;
+
   const lowerSearch = search.toLowerCase();
   return items.filter((item) =>
-    searchableKeys.some((key) => {
-      const value = item[key];
+    searchableFields.some((field) => {
+      const value = item[field];
       if (typeof value === "string") {
         return value.toLowerCase().includes(lowerSearch);
       }
       if (typeof value === "number") {
-        return value.toString().includes(lowerSearch);
+        return String(value).includes(lowerSearch);
       }
       return false;
     })
   );
+}
+
+// ── Rate Limit Helper (in-memory, for dev) ───────────────────────────
+
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+export function checkRateLimit(
+  key: string,
+  maxRequests: number = 60,
+  windowMs: number = 60_000
+): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  if (!entry || now > entry.resetAt) {
+    const resetAt = now + windowMs;
+    rateLimitStore.set(key, { count: 1, resetAt });
+    return { allowed: true, remaining: maxRequests - 1, resetAt };
+  }
+
+  entry.count += 1;
+  const remaining = Math.max(0, maxRequests - entry.count);
+  return {
+    allowed: entry.count <= maxRequests,
+    remaining,
+    resetAt: entry.resetAt,
+  };
 }

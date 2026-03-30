@@ -631,10 +631,9 @@ export default function MaterialDetailPage() {
                   tickFormatter={(value) => `\u20A6${value.toLocaleString()}`}
                 />
                 <Tooltip
-                  formatter={(value: number) => [
-                    formatNaira(value),
-                    undefined,
-                  ]}
+                  formatter={(value) =>
+                    formatNaira(Number(value))
+                  }
                   contentStyle={{
                     borderRadius: "8px",
                     border: "1px solid #e5e7eb",
