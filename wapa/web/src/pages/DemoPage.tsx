@@ -111,7 +111,7 @@ export function DemoPage() {
   const [darkMode, setDarkMode] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const scenarioTimer = useRef<ReturnType<typeof setTimeout>>();
+  const scenarioTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const scenarioStep = useRef(0);
 
   const scrollToBottom = useCallback(() => {
