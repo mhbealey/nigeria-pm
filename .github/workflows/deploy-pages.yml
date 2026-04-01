@@ -33,6 +33,9 @@ jobs:
         working-directory: wapa/web
         run: npm run build
 
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: wapa/web/dist
