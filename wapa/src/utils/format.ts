@@ -1,3 +1,5 @@
+import { WHATSAPP_MESSAGE_MAX_LENGTH } from '../constants/index.js';
+
 /**
  * Format a progress bar using Unicode block characters.
  * @param percent - The completion percentage (0-100)
@@ -39,7 +41,7 @@ export function priorityEmoji(priority: string): string {
  * @param maxLength - The maximum allowed length (default 280)
  * @returns The original text if within limits, or a truncated version ending with "..."
  */
-export function truncate(text: string, maxLength: number = 280): string {
+export function truncate(text: string, maxLength: number = WHATSAPP_MESSAGE_MAX_LENGTH): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + '...';
 }

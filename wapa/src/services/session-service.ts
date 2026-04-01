@@ -1,5 +1,9 @@
 import { redis } from '../config/redis.js';
 
+// DECISION: Session state lives in Redis (not Postgres) because it is ephemeral conversation context
+// — pending clarifications, partial entity extraction, etc. It has a 5-minute TTL and no long-term
+// value. Storing this in the DB would create write-heavy churn on every message and require cleanup
+// jobs. Redis gives us automatic expiry and sub-millisecond reads with zero maintenance.
 const SESSION_PREFIX = 'wapa:session:';
 const SESSION_TTL = 300; // 5 minutes
 

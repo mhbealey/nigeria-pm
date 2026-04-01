@@ -9,7 +9,9 @@ import type { WebhookPayload, InboundMessage } from './types.js';
 
 /** Handles incoming WhatsApp webhook events (POST /webhook) */
 export async function webhookRoute(request: FastifyRequest, reply: FastifyReply) {
-  // Immediately return 200 to acknowledge receipt
+  // DECISION: Return 200 immediately before any processing (webhook fast-ack pattern).
+  // WhatsApp retries delivery if we don't respond within ~5s, which would cause duplicate
+  // processing. We ack first, then process asynchronously to avoid timeout-driven retries.
   reply.status(200).send({ status: 'ok' });
 
   try {
@@ -26,7 +28,9 @@ export async function webhookRoute(request: FastifyRequest, reply: FastifyReply)
           const message = messages[i];
           const contact = contacts[i] ?? contacts[0];
 
-          // Process each message asynchronously
+          // DECISION: Fire-and-forget message processing. We already sent the 200 response above,
+          // so this runs detached. Errors are logged but never bubble up to the webhook caller.
+          // This decouples delivery acknowledgment from processing latency.
           handleMessage(message, contact.profile.name, contact.wa_id).catch((err) => {
             logger.error({ err, messageId: message.id }, 'Failed to process message');
           });
@@ -42,7 +46,9 @@ async function handleMessage(message: InboundMessage, senderName: string, sender
   const phone = normalizePhone(senderPhone);
   const childLogger = logger.child({ messageId: message.id, phone: phone.slice(0, 4) + '****' });
 
-  // Mark as read immediately
+  // DECISION: Silently swallow mark-as-read failures. This is a cosmetic UX feature (blue
+  // ticks in WhatsApp) — if it fails, the user still gets their response. Logging here would
+  // just be noise since there's no corrective action to take.
   markAsRead(message.id).catch(() => {});
 
   // Deduplication check

@@ -128,7 +128,7 @@ export const mockTasks: Task[] = [
     createdAt: '2026-03-27',
     notes: [],
   },
-  // --- TODO (3) ---
+  // --- BACKLOG (3) ---
   {
     id: 'task-8',
     title: 'Set up analytics tracking',

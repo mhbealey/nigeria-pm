@@ -10,10 +10,10 @@ import { setupWorkerErrorHandling } from '../queue.js';
 import { logger } from '../../utils/logger.js';
 import { formatShortDate, isOverdue } from '../../utils/date.js';
 import { format, addDays } from 'date-fns';
+import { DUE_DATE_MAX_NUDGES, DUE_DATE_REMINDER_TTL_SECONDS } from '../../constants/index.js';
 
 const connection = { host: redis.options.host ?? 'localhost', port: redis.options.port ?? 6379 };
 const NUDGE_PREFIX = 'wapa:nudge:';
-const MAX_OVERDUE_NUDGES = 3;
 
 /** Worker that sends due date reminders */
 export const dueDateReminderWorker = new Worker(
@@ -42,9 +42,9 @@ export const dueDateReminderWorker = new Worker(
       if (overdue) {
         const nudgeKey = `${NUDGE_PREFIX}${task.id}`;
         const nudgeCount = parseInt(await redis.get(nudgeKey) ?? '0');
-        if (nudgeCount >= MAX_OVERDUE_NUDGES) continue;
+        if (nudgeCount >= DUE_DATE_MAX_NUDGES) continue;
         await redis.incr(nudgeKey);
-        await redis.expire(nudgeKey, 86400 * 7); // 7 day TTL
+        await redis.expire(nudgeKey, DUE_DATE_REMINDER_TTL_SECONDS);
       }
 
       const message = taskReminderTemplate(

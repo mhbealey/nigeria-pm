@@ -14,6 +14,10 @@ interface MessageBubbleProps {
   onQuickReply?: (reply: string) => void;
 }
 
+// DECISION: We parse *bold* and _italic_ inline ourselves rather than using a markdown
+// library because (1) WhatsApp uses its own formatting syntax, not standard Markdown,
+// (2) a full markdown parser (e.g. react-markdown) adds ~30KB for features we don't need,
+// and (3) this regex approach handles the only two formats WAPA responses actually use.
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
   const regex = /(\*[^*]+\*)|(_[^_]+_)/g;

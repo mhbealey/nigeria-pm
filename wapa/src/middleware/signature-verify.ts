@@ -3,6 +3,12 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { whatsappConfig } from '../config/whatsapp.js';
 import { logger } from '../utils/logger.js';
 
+declare module 'fastify' {
+  interface FastifyRequest {
+    rawBody?: Buffer;
+  }
+}
+
 /**
  * Verifies the X-Hub-Signature-256 header from Meta webhooks.
  * Computes an HMAC-SHA256 of the raw body using the app secret and compares it
@@ -28,7 +34,7 @@ export function verifySignature(rawBody: Buffer, signature: string | undefined):
  */
 export async function signatureVerifyHook(request: FastifyRequest, reply: FastifyReply) {
   const signature = request.headers['x-hub-signature-256'] as string | undefined;
-  const rawBody = (request as any).rawBody as Buffer | undefined;
+  const rawBody = request.rawBody;
 
   if (!rawBody || !verifySignature(rawBody, signature)) {
     logger.warn({ ip: request.ip }, 'Invalid webhook signature');

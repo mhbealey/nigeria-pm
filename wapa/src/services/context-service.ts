@@ -7,9 +7,9 @@ import { sprints } from '../db/schema/sprints.js';
 import { projects } from '../db/schema/projects.js';
 import { eq, and, desc, ne } from 'drizzle-orm';
 import type { NlpContext } from '../nlp/types.js';
+import { CACHE_TTL_SECONDS } from '../constants/index.js';
 
 const CTX_PREFIX = 'wapa:ctx:';
-const CTX_TTL = 300;
 
 /** Build the full context for NLP and command processing */
 export async function buildContext(userId: string, teamId?: string): Promise<NlpContext & { projectId?: string; sprintId?: string }> {
@@ -79,7 +79,7 @@ export async function buildContext(userId: string, teamId?: string): Promise<Nlp
     teamMemberNames,
   };
 
-  await redis.set(cacheKey, JSON.stringify(context), 'EX', CTX_TTL);
+  await redis.set(cacheKey, JSON.stringify(context), 'EX', CACHE_TTL_SECONDS);
   return context;
 }
 

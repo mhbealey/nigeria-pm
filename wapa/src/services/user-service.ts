@@ -5,8 +5,8 @@ import { users, type User, type NewUser } from '../db/schema/users.js';
 import { teamMembers } from '../db/schema/teams.js';
 import { createId } from '@paralleldrive/cuid2';
 import { logger } from '../utils/logger.js';
+import { CACHE_TTL_SECONDS } from '../constants/index.js';
 
-const CACHE_TTL = 300; // 5 minutes
 const CACHE_PREFIX = 'wapa:user:';
 
 /** Find a user by phone number, creating one if they don't exist */
@@ -27,7 +27,7 @@ export async function findOrCreateByPhone(phone: string, name?: string): Promise
     logger.info({ userId: user.id }, 'New user created');
   }
 
-  await redis.set(`${CACHE_PREFIX}phone:${phone}`, JSON.stringify(user), 'EX', CACHE_TTL);
+  await redis.set(`${CACHE_PREFIX}phone:${phone}`, JSON.stringify(user), 'EX', CACHE_TTL_SECONDS);
   return user;
 }
 
@@ -38,7 +38,7 @@ export async function findUserById(id: string): Promise<User | undefined> {
 
   const user = await db.query.users.findFirst({ where: eq(users.id, id) });
   if (user) {
-    await redis.set(`${CACHE_PREFIX}${id}`, JSON.stringify(user), 'EX', CACHE_TTL);
+    await redis.set(`${CACHE_PREFIX}${id}`, JSON.stringify(user), 'EX', CACHE_TTL_SECONDS);
   }
   return user;
 }
@@ -56,5 +56,5 @@ export async function getTeamMembers(teamId: string): Promise<User[]> {
     where: eq(teamMembers.teamId, teamId),
     with: { user: true },
   });
-  return members.map((m: any) => m.user);
+  return members.map((m) => m.user);
 }

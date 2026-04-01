@@ -4,6 +4,7 @@ import { tasks } from '../db/schema/tasks.js';
 import { eq, and, ne } from 'drizzle-orm';
 import { formatTaskItem } from '../utils/format.js';
 import { formatShortDate } from '../utils/date.js';
+import { TASK_LIST_MAX_DISPLAY } from '../constants/index.js';
 
 /** List tasks with optional filters */
 export async function listTasks(ctx: CommandContext): Promise<CommandResult> {
@@ -21,14 +22,14 @@ export async function listTasks(ctx: CommandContext): Promise<CommandResult> {
 
   let msg = `📋 *Your tasks* (${userTasks.length}):\n\n`;
 
-  for (let i = 0; i < Math.min(userTasks.length, 10); i++) {
+  for (let i = 0; i < Math.min(userTasks.length, TASK_LIST_MAX_DISPLAY); i++) {
     const t = userTasks[i];
     const due = t.dueDate ? formatShortDate(new Date(t.dueDate)) : undefined;
     msg += formatTaskItem(i + 1, t.title, t.status, due) + '\n';
   }
 
-  if (userTasks.length > 10) {
-    msg += `\n...and ${userTasks.length - 10} more`;
+  if (userTasks.length > TASK_LIST_MAX_DISPLAY) {
+    msg += `\n...and ${userTasks.length - TASK_LIST_MAX_DISPLAY} more`;
   }
 
   return { reply: msg.trim(), success: true };

@@ -1,6 +1,13 @@
 import { redis } from '../config/redis.js';
 import { logger } from '../utils/logger.js';
 
+// DECISION: Message deduplication is necessary because WhatsApp's webhook delivery is at-least-once.
+// Network hiccups between WhatsApp and our server can cause the same message to be delivered 2-3
+// times within seconds. Without dedup, users would see duplicate task creations, double replies, etc.
+
+// DECISION: 5-minute TTL is long enough to cover WhatsApp's retry window (retries happen within
+// ~30s-2min) but short enough to keep Redis memory usage bounded. At 10K messages/day, this holds
+// ~35 keys in Redis at any time — negligible memory footprint.
 const DEDUP_TTL = 300; // 5 minutes
 const DEDUP_PREFIX = 'wapa:dedup:';
 

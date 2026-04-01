@@ -1,15 +1,16 @@
 import Redis from 'ioredis';
 import { env } from './env.js';
 import { logger } from '../utils/logger.js';
+import { REDIS_RETRY_MIN_MS, REDIS_RETRY_MAX_MS } from '../constants/index.js';
 
 /**
  * Redis client configured with automatic reconnection and lazy connect.
- * Uses exponential backoff with a maximum delay of 5 seconds.
+ * Uses exponential backoff with a maximum delay defined in constants.
  */
 export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 3,
   retryStrategy(times) {
-    const delay = Math.min(times * 200, 5000);
+    const delay = Math.min(times * REDIS_RETRY_MIN_MS, REDIS_RETRY_MAX_MS);
     return delay;
   },
   lazyConnect: true,

@@ -2,6 +2,17 @@ import { create } from 'zustand';
 import type { ChatMessage, Chat } from '../types/message';
 import { mockMessages } from '../data/mock-messages';
 
+/**
+ * Zustand store managing the WhatsApp-style chat UI state.
+ * Holds the message history, chat list with unread counts, and
+ * typing indicator state. The simulation engine writes to this
+ * store to drive the demo conversation flow.
+ *
+ * DECISION: Messages are stored as a flat array rather than nested per-chat because
+ * the prototype only has one active chat (WAPA Bot). Flat storage means O(1) append,
+ * simple chronological rendering, and trivial clearMessages/resetToHistory. If we
+ * later support multiple real chats, migrate to a Map<chatId, ChatMessage[]>.
+ */
 interface ChatState {
   messages: ChatMessage[];
   chats: Chat[];

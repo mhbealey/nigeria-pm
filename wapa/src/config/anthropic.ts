@@ -1,13 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from './env.js';
+import { ANTHROPIC_TIMEOUT_MS } from '../constants/index.js';
 
 /**
  * Pre-configured Anthropic SDK client for calling Claude APIs.
- * Timeout is set to 30 seconds with up to 2 automatic retries on transient failures.
+ * Timeout and retry configuration rationale documented in constants/index.ts.
  */
 export const anthropic = new Anthropic({
   apiKey: env.ANTHROPIC_API_KEY,
-  timeout: 30_000,
+  timeout: ANTHROPIC_TIMEOUT_MS,
   maxRetries: 2,
 });
 

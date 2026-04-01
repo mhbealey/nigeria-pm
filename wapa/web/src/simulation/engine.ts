@@ -39,6 +39,8 @@ function createInMessage(
 
 /**
  * Wait for a given number of milliseconds, respecting abort signals.
+ * DECISION: Typing delays exist to simulate human reading/thinking time — without
+ * them, instant responses feel robotic and break the WhatsApp illusion.
  */
 function wait(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -52,6 +54,9 @@ function wait(ms: number, signal?: AbortSignal): Promise<void> {
 
 /**
  * Apply side effects to the project store and other stores.
+ * DECISION: Side effects mutate Zustand stores directly rather than dispatching events,
+ * because Zustand's getState() is synchronous and always current — no stale closure issues.
+ * This keeps the simulation engine as the single orchestrator of state changes.
  */
 function applySideEffects(effects: SideEffect[]): void {
   const projectStore = useProjectStore.getState();
@@ -143,12 +148,11 @@ function applySideEffects(effects: SideEffect[]): void {
 }
 
 /**
- * Process a user message in freeform mode:
- * 1. Add the user message to chat
- * 2. Show typing indicator
- * 3. Wait for realistic delay
- * 4. Send WAPA response
- * 5. Apply side effects
+ * Process a user message in freeform (non-scenario) mode.
+ * Generates a response via pattern matching, simulates a realistic
+ * typing delay scaled by the demo speed setting, then applies any
+ * side effects (task creation, status changes, etc.) to the project store.
+ * Aborts gracefully if a new message arrives before the response is sent.
  */
 export async function processUserMessage(userInput: string): Promise<void> {
   const chatStore = useChatStore.getState();
@@ -189,6 +193,10 @@ export async function processUserMessage(userInput: string): Promise<void> {
 
 /**
  * Run a guided scenario step by step.
+ * Scenarios are predefined sequences of user messages and WAPA responses
+ * that showcase specific workflows (e.g., sprint planning, task triage).
+ * Each step triggers side effects that update the dashboard in real time.
+ * Respects pause/reset signals from the demo store and the current speed setting.
  */
 export async function runScenario(scenarioId: string): Promise<void> {
   const scenario = getScenario(scenarioId);

@@ -20,7 +20,13 @@ interface VelocityChartProps {
   className?: string;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-[var(--slate-800)] text-white text-xs px-3 py-2 rounded-[var(--radius-md)] shadow-[var(--shadow-lg)]">

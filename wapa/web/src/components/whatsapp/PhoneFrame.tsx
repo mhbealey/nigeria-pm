@@ -4,6 +4,10 @@ interface PhoneFrameProps {
   children: React.ReactNode;
 }
 
+// DECISION: 40px border-radius matches the iPhone 14/15 physical bezel curvature.
+// We use pure CSS (border, boxShadow, border-radius) rather than an image or SVG overlay
+// because CSS scales to any DPI, avoids an image asset to manage, and lets us easily
+// adjust dimensions. The 12px border simulates the phone bezel depth.
 const PhoneFrame: React.FC<PhoneFrameProps> = ({ children }) => {
   return (
     <div className="hidden md:flex items-center justify-center">

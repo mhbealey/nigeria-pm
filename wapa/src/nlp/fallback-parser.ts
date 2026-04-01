@@ -1,5 +1,10 @@
 import { Intent, type ParseResult } from './types.js';
 
+// DECISION: This fallback parser exists as a safety net for LLM failures (API outages, timeouts,
+// malformed responses). Without it, any Haiku downtime would make the entire bot unresponsive.
+// The regex patterns cover the most common ~80% of commands with simple keyword matching.
+// Confidence is capped at 0.80-0.85 (never HIGH for entity-bearing intents) so the router always
+// appends a "Not right?" clarification prompt, reducing the blast radius of regex mis-parses.
 /** Regex-based fallback parser for when LLM is unavailable */
 export function fallbackParse(text: string): ParseResult {
   const lower = text.toLowerCase().trim();

@@ -21,6 +21,14 @@ import { users } from '../db/schema/users.js';
 import { eq } from 'drizzle-orm';
 import { createId } from '@paralleldrive/cuid2';
 
+// DECISION: The command pipeline order is: dedup → rate-limit → parse → route → execute.
+// Dedup runs first because it's the cheapest check (single Redis GET) and prevents all downstream
+// work for duplicate messages. Rate-limiting runs before NLP parsing because Haiku API calls cost
+// money — we don't want to burn tokens on a spamming user. Parsing must precede routing obviously.
+
+// DECISION: Unknown intents route to a help handler (not an error). Users on WhatsApp don't have
+// discoverability — there's no menu or UI chrome. Responding with "here's what I can do" teaches
+// the user the system's vocabulary, which is more useful than "I don't understand" error messages.
 const handlers: Record<Intent, CommandHandler> = {
   [Intent.CREATE_TASK]: createTask,
   [Intent.ASSIGN_TASK]: assignTask,
@@ -48,7 +56,15 @@ async function greeting(ctx: CommandContext): Promise<CommandResult> {
   return { reply: replies[Math.floor(Math.random() * replies.length)], success: true };
 }
 
-/** Process an incoming message through the NLP → command pipeline */
+/**
+ * Process an incoming WhatsApp message through the full pipeline:
+ * 1. Resolve or create the sender's user record
+ * 2. Parse the message text via NLP to extract intent + entities
+ * 3. Route to the matching command handler
+ * 4. If confidence is MEDIUM, wrap the reply with a clarification prompt
+ *
+ * Returns the final reply string to send back via WhatsApp.
+ */
 export async function processMessage(message: IncomingMessage): Promise<string> {
   const startTime = Date.now();
 

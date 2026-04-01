@@ -1,3 +1,5 @@
+import { PHONE_VISIBLE_DIGITS } from '../constants/index.js';
+
 /**
  * Normalize a phone number to E.164 format.
  * Strips whitespace, dashes, parentheses, and dots, then ensures a leading "+".
@@ -30,8 +32,10 @@ export function extractCountryCode(phone: string): string {
  */
 export function maskPhone(phone: string): string {
   const normalized = normalizePhone(phone);
-  if (normalized.length <= 6) return '***';
-  return normalized.slice(0, 4) + '****' + normalized.slice(-2);
+  if (normalized.length <= PHONE_VISIBLE_DIGITS) return '***';
+  const visibleEnd = Math.floor(PHONE_VISIBLE_DIGITS / 3);
+  const visibleStart = PHONE_VISIBLE_DIGITS - visibleEnd;
+  return normalized.slice(0, visibleStart) + '****' + normalized.slice(-visibleEnd);
 }
 
 /**

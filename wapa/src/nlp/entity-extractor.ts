@@ -2,6 +2,7 @@ import { anthropic, NLP_MODEL } from '../config/anthropic.js';
 import { buildEntityExtractionPrompt } from './prompts/extract-entities.js';
 import { logger } from '../utils/logger.js';
 import type { Entities, NlpContext } from './types.js';
+import { NLP_MAX_TOKENS, FUZZY_MATCH_THRESHOLD } from '../constants/index.js';
 
 /** Extract entities from a message when intent is already known */
 export async function extractEntities(text: string, intent: string, context: NlpContext): Promise<Entities> {
@@ -10,7 +11,7 @@ export async function extractEntities(text: string, intent: string, context: Nlp
 
     const response = await anthropic.messages.create({
       model: NLP_MODEL,
-      max_tokens: 256,
+      max_tokens: NLP_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: 'user', content: text }],
     });
@@ -69,7 +70,7 @@ export function fuzzyMatchTask(input: string, taskTitles: string[]): string | nu
     }
 
     const score = overlap / Math.max(inputTokens.size, titleTokens.size);
-    if (score > bestScore && score > 0.3) {
+    if (score > bestScore && score > FUZZY_MATCH_THRESHOLD) {
       bestScore = score;
       bestMatch = title;
     }

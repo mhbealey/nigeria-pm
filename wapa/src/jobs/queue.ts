@@ -2,6 +2,7 @@ import { Queue, Worker, QueueEvents } from 'bullmq';
 import { redis } from '../config/redis.js';
 import { logger } from '../utils/logger.js';
 import * as Sentry from '@sentry/node';
+import { JOB_BACKOFF_DELAY_MS, JOB_REMOVE_ON_COMPLETE, JOB_REMOVE_ON_FAIL } from '../constants/index.js';
 
 const connection = { host: redis.options.host ?? 'localhost', port: redis.options.port ?? 6379 };
 
@@ -40,7 +41,7 @@ export function setupWorkerErrorHandling(worker: Worker): void {
 /** Default job options with retry */
 export const defaultJobOptions = {
   attempts: 3,
-  backoff: { type: 'exponential' as const, delay: 2000 },
-  removeOnComplete: { count: 100 },
-  removeOnFail: { count: 500 },
+  backoff: { type: 'exponential' as const, delay: JOB_BACKOFF_DELAY_MS },
+  removeOnComplete: { count: JOB_REMOVE_ON_COMPLETE },
+  removeOnFail: { count: JOB_REMOVE_ON_FAIL },
 };

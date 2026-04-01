@@ -6,6 +6,10 @@ import { sprints } from './sprints.js';
 import { users } from './users.js';
 import { notes } from './notes.js';
 
+// DECISION: Status and priority are Postgres enums (not plain text columns) for three reasons:
+// 1. DB-level constraint prevents invalid values without application-level validation
+// 2. Enums use 4 bytes per row vs variable-length strings — measurable savings at scale
+// 3. Drizzle infers the union type automatically, so TypeScript catches invalid values at compile time
 export const taskStatusEnum = pgEnum('task_status', ['todo', 'in_progress', 'blocked', 'done']);
 export const taskPriorityEnum = pgEnum('task_priority', ['low', 'medium', 'high', 'urgent']);
 
@@ -23,6 +27,10 @@ export const tasks = pgTable('tasks', {
   completedAt: timestamp('completed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
+  // DECISION: Composite indexes pair each foreign key with status because nearly every query filters
+  // by status (e.g., "show my open tasks", "sprint progress"). A single-column index on assigneeId
+  // would still require a table scan to filter by status. The composite index lets Postgres satisfy
+  // WHERE assignee_id = ? AND status = 'todo' entirely from the index without hitting the heap.
   index('tasks_project_id_status_idx').on(table.projectId, table.status),
   index('tasks_assignee_id_status_idx').on(table.assigneeId, table.status),
   index('tasks_sprint_id_status_idx').on(table.sprintId, table.status),

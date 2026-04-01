@@ -9,6 +9,7 @@ import { sendTextMessage } from '../../whatsapp/sender.js';
 import { setupWorkerErrorHandling } from '../queue.js';
 import { logger } from '../../utils/logger.js';
 import { differenceInHours } from 'date-fns';
+import { BLOCKED_NUDGE_HOURS } from '../../constants/index.js';
 
 const connection = { host: redis.options.host ?? 'localhost', port: redis.options.port ?? 6379 };
 
@@ -25,7 +26,7 @@ export const blockedTaskNudgeWorker = new Worker(
       const blockedSince = task.createdAt; // Simplified — ideally track status change time
       const hoursBlocked = differenceInHours(new Date(), new Date(blockedSince));
 
-      if (hoursBlocked < 48) continue;
+      if (hoursBlocked < BLOCKED_NUDGE_HOURS) continue;
 
       const days = Math.floor(hoursBlocked / 24);
       const message = `Hey team 👋 *${task.title}* has been blocked for ${days} days — anyone able to help unblock?`;

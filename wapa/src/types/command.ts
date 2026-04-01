@@ -1,4 +1,8 @@
-/** Context passed to every command handler */
+/**
+ * Context passed to every command handler after NLP parsing.
+ * Populated by the router from the user record and parsed entities.
+ * Handlers should treat this as read-only; mutations belong in services.
+ */
 export interface CommandContext {
   userId: string;
   userName: string;
@@ -19,7 +23,12 @@ export interface CommandContext {
   };
 }
 
-/** Result returned by command handlers */
+/**
+ * Result returned by command handlers to the router.
+ * The router uses `reply` as the WhatsApp response text and logs `success`
+ * plus optional `metadata` for observability. Handlers must always return
+ * a user-friendly `reply` even on failure.
+ */
 export interface CommandResult {
   reply: string;
   success: boolean;

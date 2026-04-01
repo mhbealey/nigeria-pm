@@ -2,6 +2,7 @@ import { whatsappConfig } from '../config/whatsapp.js';
 import { logger } from '../utils/logger.js';
 import { retry } from '../utils/retry.js';
 import type { SendTextMessage, SendTemplateMessage, SendInteractiveMessage, SendReaction, ApiResponse } from './types.js';
+import { WHATSAPP_RETRY_DELAY_MS } from '../constants/index.js';
 
 /** Send a text message via WhatsApp Cloud API */
 export async function sendTextMessage(to: string, body: string): Promise<ApiResponse> {
@@ -93,7 +94,12 @@ export async function markAsRead(messageId: string): Promise<void> {
   }
 }
 
-/** Core message sending with retry */
+/**
+ * Core message sender with automatic retry on transient failures.
+ * Retries up to 2 times with 500ms base delay (exponential backoff).
+ * Non-2xx responses are treated as errors and retried; persistent
+ * failures propagate as exceptions to the caller.
+ */
 async function sendMessage(payload: Record<string, unknown>): Promise<ApiResponse> {
   return retry(async () => {
     const response = await fetch(whatsappConfig.messagesUrl, {
@@ -112,5 +118,5 @@ async function sendMessage(payload: Record<string, unknown>): Promise<ApiRespons
     }
 
     return response.json() as Promise<ApiResponse>;
-  }, { maxRetries: 2, baseDelay: 500 });
+  }, { maxRetries: 2, baseDelay: WHATSAPP_RETRY_DELAY_MS });
 }

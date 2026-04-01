@@ -1,7 +1,6 @@
 import { redis } from '../config/redis.js';
+import { RATE_LIMIT_WINDOW_SECONDS, RATE_LIMIT_MAX_REQUESTS } from '../constants/index.js';
 
-const RATE_LIMIT_WINDOW = 60; // 1 minute
-const RATE_LIMIT_MAX = 30; // 30 messages per minute
 const RATE_PREFIX = 'wapa:ratelimit:';
 
 /**
@@ -13,20 +12,20 @@ const RATE_PREFIX = 'wapa:ratelimit:';
 export async function checkRateLimit(phone: string): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
   const key = `${RATE_PREFIX}${phone}`;
   const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW * 1000;
+  const windowStart = now - RATE_LIMIT_WINDOW_SECONDS * 1000;
 
   const pipe = redis.pipeline();
   pipe.zremrangebyscore(key, 0, windowStart);
   pipe.zadd(key, now.toString(), `${now}`);
   pipe.zcard(key);
-  pipe.expire(key, RATE_LIMIT_WINDOW);
+  pipe.expire(key, RATE_LIMIT_WINDOW_SECONDS);
 
   const results = await pipe.exec();
   const count = (results?.[2]?.[1] as number) ?? 0;
 
-  if (count > RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0, retryAfter: RATE_LIMIT_WINDOW };
+  if (count > RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, remaining: 0, retryAfter: RATE_LIMIT_WINDOW_SECONDS };
   }
 
-  return { allowed: true, remaining: RATE_LIMIT_MAX - count };
+  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - count };
 }

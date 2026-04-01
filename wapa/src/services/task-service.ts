@@ -5,7 +5,11 @@ import { createId } from '@paralleldrive/cuid2';
 import { logger } from '../utils/logger.js';
 import type { TaskStatus, TaskPriority } from '../types/common.js';
 
-/** Create a new task */
+/**
+ * Create a new task and persist it to the database.
+ * Defaults assignee to the creator when none is specified,
+ * and sets initial status to "todo".
+ */
 export async function createTaskRecord(data: {
   title: string;
   projectId?: string;
@@ -33,7 +37,10 @@ export async function createTaskRecord(data: {
   return task;
 }
 
-/** Get tasks assigned to a user */
+/**
+ * Get tasks assigned to a user, optionally filtered by status.
+ * Results are ordered by creation date, newest first.
+ */
 export async function getTasksByAssignee(userId: string, status?: TaskStatus): Promise<Task[]> {
   if (status) {
     return db.query.tasks.findMany({
@@ -54,7 +61,11 @@ export async function getTasksBySprint(sprintId: string): Promise<Task[]> {
   });
 }
 
-/** Search tasks by name (fuzzy) */
+/**
+ * Search tasks by title using case-insensitive substring matching.
+ * Optionally scoped to a single project. Used by command handlers to
+ * resolve task references from natural language input.
+ */
 export async function searchTaskByName(query: string, projectId?: string): Promise<Task[]> {
   if (projectId) {
     return db.query.tasks.findMany({
@@ -66,7 +77,10 @@ export async function searchTaskByName(query: string, projectId?: string): Promi
   });
 }
 
-/** Update task status */
+/**
+ * Update a task's status. Automatically sets `completedAt` when
+ * transitioning to "done".
+ */
 export async function updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task> {
   const updates: Record<string, unknown> = { status };
   if (status === 'done') updates.completedAt = new Date();

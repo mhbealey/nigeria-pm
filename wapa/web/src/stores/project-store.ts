@@ -3,6 +3,12 @@ import type { Task, TaskStatus, TaskPriority, TaskNote, Project, Sprint } from '
 import { mockTasks, mockProjects, mockSprints } from '../data/mock-projects';
 import { activityFeed, type ActivityItem } from '../data/mock-analytics';
 
+/**
+ * Zustand store for project, sprint, and task state powering the dashboard.
+ * The simulation engine mutates this store via side effects so that
+ * chat interactions are reflected in real time on the kanban board,
+ * velocity chart, and activity feed.
+ */
 interface ProjectState {
   tasks: Task[];
   projects: Project[];
