@@ -6,13 +6,20 @@ export interface SimResponse {
   quickReplies?: string[];
   isSprintComplete?: boolean;
   isTaskComplete?: boolean;
+  syncAction?: {
+    type: 'move' | 'create' | 'update';
+    cardTitle: string;
+    fromColumn?: string;
+    toColumn: string;
+  };
 }
 
 const PRIORITY_ICONS: Record<string, string> = {
-  urgent: '\u{1F534}',
-  high: '\u{1F7E0}',
-  medium: '\u{1F7E1}',
-  low: '\u{1F7E2}',
+  urgent: '🔴', high: '🟠', medium: '🟡', low: '🟢',
+};
+
+const STATUS_COLUMN: Record<string, string> = {
+  todo: 'Todo', in_progress: 'In Progress', blocked: 'Blocked', done: 'Done',
 };
 
 function progressBar(percent: number): string {
@@ -20,7 +27,7 @@ function progressBar(percent: number): string {
   const filled = Math.round((percent / 100) * total);
   const inProg = Math.min(1, total - filled);
   const empty = total - filled - inProg;
-  return '\u2588'.repeat(filled) + '\u2592'.repeat(inProg) + '\u2591'.repeat(empty);
+  return '█'.repeat(filled) + '▒'.repeat(inProg) + '░'.repeat(empty);
 }
 
 function formatDueDate(dateStr: string): string {
@@ -29,11 +36,8 @@ function formatDueDate(dateStr: string): string {
   const today = now.toISOString().slice(0, 10);
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-
   if (dateStr === today) return 'today';
-  if (dateStr === tomorrowStr) return 'tomorrow';
-
+  if (dateStr === tomorrow.toISOString().slice(0, 10)) return 'tomorrow';
   const diff = Math.ceil((d.getTime() - now.getTime()) / 86400000);
   if (diff < 0) return `${Math.abs(diff)} days overdue`;
   if (diff <= 7) return `in ${diff} days`;
@@ -41,380 +45,486 @@ function formatDueDate(dateStr: string): string {
 }
 
 function formatTaskLine(t: SimTask): string {
-  const icon = PRIORITY_ICONS[t.priority] || '\u{1F7E1}';
-  const status = t.status === 'blocked' ? ' \u{1F6AB}' : t.status === 'in_progress' ? ' \u{1F504}' : '';
-  const due = t.dueDate ? ` \u2014 due ${formatDueDate(t.dueDate)}` : '';
+  const icon = PRIORITY_ICONS[t.priority] || '🟡';
+  const status = t.status === 'blocked' ? ' 🚫' : t.status === 'in_progress' ? ' 🔨' : '';
+  const due = t.dueDate ? ` — due ${formatDueDate(t.dueDate)}` : '';
   return `${icon} *${t.title}*${status}${due}`;
 }
+
+// Tool name — will be read by the caller and can be set externally
+let toolName = 'Trello';
+export function setToolName(name: string) { toolName = name; }
+export function getToolName() { return toolName; }
+
+// Pending suggestion state for observe→suggest→act model
+let pendingSuggestion: {
+  actionType: string;
+  taskId: string;
+  description: string;
+  execute: () => SimResponse;
+} | null = null;
 
 type Pattern = {
   regex: RegExp;
   handler: (match: RegExpMatchArray) => SimResponse;
 };
 
-function parseDate(text: string): string {
-  const lower = text.toLowerCase().trim();
-  const now = new Date();
-  if (lower === 'today') return now.toISOString().slice(0, 10);
-  if (lower === 'tomorrow') {
-    now.setDate(now.getDate() + 1);
-    return now.toISOString().slice(0, 10);
-  }
-  const inDays = lower.match(/in (\d+) days?/);
-  if (inDays) {
-    now.setDate(now.getDate() + parseInt(inDays[1]));
-    return now.toISOString().slice(0, 10);
-  }
-  const parsed = new Date(text);
-  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  // Fallback: default to 5 days from now
-  const fallback = new Date();
-  fallback.setDate(fallback.getDate() + 5);
-  return fallback.toISOString().slice(0, 10);
-}
-
 const patterns: Pattern[] = [
-  // TASK CREATION
+  // ──────────────────────────────────────────────────────
+  // CONFIRMATION REPLIES (must be first to catch quick replies)
+  // ──────────────────────────────────────────────────────
   {
-    regex: /^(?:add task[:\s]+|new task[:\s]+|todo[:\s]+)(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const title = match[1].trim();
-      const task = store.addTask(title);
-      const due = formatDueDate(task.dueDate);
-      return {
-        text: `\u2705 *${task.title}* \u2014 assigned to you, due ${due}\nWant to set a priority?`,
-        quickReplies: ['Low', 'Medium', 'High', 'Urgent'],
-      };
+    regex: /^(?:✅ ?(?:yes|move it|yes!)|^yes$|^yep$|^do it$|^yes,? (?:add note|block it))/i,
+    handler: () => {
+      if (pendingSuggestion) {
+        const result = pendingSuggestion.execute();
+        pendingSuggestion = null;
+        return result;
+      }
+      return { text: `Nothing pending — what would you like me to do?`, quickReplies: ['My tasks', 'Sprint status'] };
     },
   },
   {
-    regex: /^(.+?)\s+is a task$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const title = match[1].trim();
-      const task = store.addTask(title);
-      return {
-        text: `\u2705 *${task.title}* \u2014 assigned to you, due ${formatDueDate(task.dueDate)}`,
-        quickReplies: ['My tasks', 'Sprint status'],
-      };
+    regex: /^(?:not yet|no|nope|leave it|skip|hold on|keep it)$/i,
+    handler: () => {
+      pendingSuggestion = null;
+      return { text: `No problem — I'll leave it for now. 👍` };
+    },
+  },
+  {
+    regex: /^wrong task$/i,
+    handler: () => {
+      pendingSuggestion = null;
+      return { text: `Which task did you mean? Try the full task name.` };
     },
   },
 
-  // TASK COMPLETION
+  // ──────────────────────────────────────────────────────
+  // EXPLICIT @WAPA COMMANDS (act immediately)
+  // ──────────────────────────────────────────────────────
   {
-    regex: /^(?:done with|finished|completed|✅)\s+(.+)/i,
+    regex: /^@wapa\s+(?:mark\s+)?(.+?)\s+(?:as\s+)?done$/i,
     handler: (match) => {
       const store = useSimulationStore.getState();
       const task = store.findTask(match[1]);
-      if (!task) return { text: `Hmm, I couldn't find a task matching "${match[1]}". Try *my tasks* to see your list.` };
+      if (!task) return { text: `Couldn't find *${match[1]}* on your ${toolName} board. Try *@wapa my tasks* to see what's there.` };
+      const fromCol = STATUS_COLUMN[task.status] || 'In Progress';
       store.completeTask(task.id);
-      const progress = store.getSprintProgress();
-      const isSprintComplete = progress.done === progress.total;
-      if (isSprintComplete) {
+      const p = store.getSprintProgress();
+      const isComplete = p.done === p.total;
+      if (isComplete) {
         const topUser = store.users.reduce((best, u) => {
           const count = store.tasks.filter(t => t.assignee.id === u.id && t.status === 'done').length;
           return count > best.count ? { user: u, count } : best;
         }, { user: store.users[0], count: 0 });
         return {
-          text: `\u{1F389}\u{1F389}\u{1F389} That's ALL of them! ${store.sprint.name} is DONE!\n\n\u2705 ${progress.total}/${progress.total} tasks complete\n\u26A1 Velocity: ${progress.total} pts\n\u{1F3C6} MVP: ${topUser.user.firstName} \u2014 ${topUser.count} tasks\n\nIncredible work, team \u{1F680}`,
+          text: `🎉🎉🎉 That's ALL of them! ${store.sprint.name} is DONE!\n\n*${p.total}/${p.total} complete on ${toolName}* — 100%\n\n📈 Sprint stats:\n• Velocity: ${p.total} cards in 2 weeks\n• MVP: ${topUser.user.firstName} — ${topUser.count} tasks\n\nIncredible work team. Time to ship it! 🚀`,
           isSprintComplete: true,
+          syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Done' },
         };
       }
       return {
-        text: `\u{1F389} Nice \u2014 *${task.title}* is done!\n${store.sprint.name}: ${progressBar(progress.percent)} ${progress.percent}% \u2014 ${progress.done} of ${progress.total} done\n${progress.total - progress.done} tasks left \u{1F4AA}`,
-        quickReplies: ['My tasks', 'Sprint status'],
+        text: `✓ Moved *${task.title}* → Done on ${toolName}.\n${store.sprint.name}: ${p.done}/${p.total} complete (${p.percent}%)${p.total - p.done <= 3 ? ' — almost there!' : ''}`,
+        syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Done' },
         isTaskComplete: true,
+        quickReplies: ['My tasks', 'Sprint status'],
       };
     },
   },
   {
-    regex: /^(.+?)\s+is done$/i,
+    regex: /^@wapa\s+assign\s+(.+?)\s+to\s+(.+)/i,
     handler: (match) => {
       const store = useSimulationStore.getState();
       const task = store.findTask(match[1]);
-      if (!task) return { text: `Hmm, I couldn't find a task matching "${match[1]}". Try *my tasks* to see your list.` };
-      store.completeTask(task.id);
-      const progress = store.getSprintProgress();
+      const user = findUserByName(match[2]);
+      if (!task) return { text: `Couldn't find *${match[1]}* on ${toolName}.` };
+      if (!user) return { text: `I don't know anyone named "${match[2]}". Team: Alex, Maya, Jordan, Sam, Riley.` };
+      store.assignTask(task.id, user);
       return {
-        text: `\u{1F389} Nice \u2014 *${task.title}* is done!\n${store.sprint.name}: ${progressBar(progress.percent)} ${progress.percent}% \u2014 ${progress.done} of ${progress.total} done`,
+        text: `✓ *${task.title}* assigned to ${user.firstName} on ${toolName}.`,
+        syncAction: { type: 'update', cardTitle: task.title, toColumn: STATUS_COLUMN[task.status] },
         quickReplies: ['My tasks', 'Sprint status'],
-        isTaskComplete: true,
+      };
+    },
+  },
+  {
+    regex: /^@wapa\s+move\s+(.+?)\s+to\s+backlog$/i,
+    handler: (match) => {
+      const store = useSimulationStore.getState();
+      const task = store.findTask(match[1]);
+      if (!task) return { text: `Couldn't find *${match[1]}* on ${toolName}.` };
+      const fromCol = STATUS_COLUMN[task.status];
+      // Remove from sprint by completing (simulated backlog)
+      store.completeTask(task.id);
+      const p = store.getSprintProgress();
+      return {
+        text: `✓ Moved *${task.title}* → Backlog on ${toolName}.\n${store.sprint.name} is now ${p.done}/${p.total} (${p.percent}%) — tighter scope, faster ship. 🚢`,
+        syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Backlog' },
+        quickReplies: ['Sprint status', 'My tasks'],
+      };
+    },
+  },
+  {
+    regex: /^@wapa\s+(?:what'?s\s+overdue|overdue)[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const tasks = store.getOverdueTasks();
+      if (tasks.length === 0) return { text: `No overdue cards on ${toolName}! 🎉`, quickReplies: ['Sprint status'] };
+      return { text: `⚠️ Overdue on your ${toolName} board:\n\n${tasks.map(formatTaskLine).join('\n')}` };
+    },
+  },
+  {
+    regex: /^@wapa\s+(?:sprint\s+status|how'?s\s+the\s+sprint)[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const p = store.getSprintProgress();
+      const end = new Date(store.sprint.endDate);
+      const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+      let blockerText = '';
+      if (p.blocked > 0) {
+        const blocked = store.getBlockedTasks();
+        blockerText = `\n\n🚫 Blocked:\n${blocked.map(t => `• *${t.title}* — ${t.blockReason || 'no reason'}`).join('\n')}`;
+      }
+      return {
+        text: `📊 *${store.sprint.name} from ${toolName}:*\n\n${progressBar(p.percent)} ${p.percent}%\n\n✅ ${p.done} done · 🔨 ${p.inProgress} in progress · 🚫 ${p.blocked} blocked · 📝 ${p.todo} todo\n\n${daysLeft} day${daysLeft !== 1 ? 's' : ''} left — ${p.percent >= 50 ? 'on track!' : "let's push!"}${blockerText}`,
+        quickReplies: p.blocked > 0 ? ['Show blockers', 'My tasks'] : ['My tasks'],
+      };
+    },
+  },
+  {
+    regex: /^@wapa\s+my\s+tasks[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const tasks = store.getMyTasks();
+      if (tasks.length === 0) return { text: `You're all clear on ${toolName}! 🎉`, quickReplies: ['Sprint status'] };
+      return {
+        text: `📋 ${store.currentUser.firstName}, here are your tasks from ${toolName}:\n\n${tasks.map(formatTaskLine).join('\n')}\n\n${tasks.length} card${tasks.length !== 1 ? 's' : ''} assigned to you.`,
+        quickReplies: ['Sprint status'],
+      };
+    },
+  },
+  {
+    regex: /^@wapa\s+(?:what'?s\s+blocked|show\s+blockers?)[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const blocked = store.getBlockedTasks();
+      if (blocked.length === 0) return { text: `No blockers on ${toolName}! 🎉`, quickReplies: ['Sprint status'] };
+      const lines = blocked.map((t, i) => {
+        const days = Math.max(1, Math.ceil((Date.now() - new Date(t.createdAt).getTime()) / 86400000));
+        return `${i + 1}. *${t.title}* — ${t.blockReason || 'no reason'} (${days} days)`;
+      }).join('\n');
+      return {
+        text: `🚫 ${blocked.length} card${blocked.length > 1 ? 's' : ''} blocked on ${toolName}:\n\n${lines}\n\nWant me to ping the team?`,
+        quickReplies: ['Yes, ping them', "No, I'll handle it"],
+      };
+    },
+  },
+  {
+    regex: /^@wapa\s+standup[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const p = store.getSprintProgress();
+      const overdue = store.getOverdueTasks();
+      const blocked = store.getBlockedTasks();
+      const dueToday = store.getTasksDueToday();
+      let text = `☀️ *Morning standup — ${store.sprint.name} from ${toolName}:*\n\n📋 ${p.total} cards total\n✅ Done: ${p.done} · 🔨 In Progress: ${p.inProgress} · 🚫 Blocked: ${p.blocked} · 📝 Todo: ${p.todo}`;
+      if (overdue.length > 0) text += `\n\n🔴 Overdue:\n${overdue.map(t => `• *${t.title}* (${t.assignee.firstName})`).join('\n')}`;
+      if (blocked.length > 0) text += `\n\n🚫 Blocked:\n${blocked.map(t => `• *${t.title}* (${t.assignee.firstName}) — ${t.blockReason || 'no reason'}`).join('\n')}`;
+      if (dueToday.length > 0) text += `\n\n📅 Due today:\n${dueToday.map(t => `• *${t.title}* (${t.assignee.firstName})`).join('\n')}`;
+      text += `\n\nQuestions? Just ask. Or update your tasks right here 👇`;
+      return { text, quickReplies: ['My tasks', 'Show blockers'] };
+    },
+  },
+
+  // ──────────────────────────────────────────────────────
+  // NATURAL CONVERSATION DETECTION (suggest, don't act)
+  // ──────────────────────────────────────────────────────
+  {
+    regex: /^(?:(.+?)\s+is\s+done|(?:finished|completed|just pushed)\s+(.+))[\s!.🎉]*$/i,
+    handler: (match) => {
+      const taskName = (match[1] || match[2]).trim();
+      const store = useSimulationStore.getState();
+      const task = store.findTask(taskName);
+      if (!task) return { text: `Nice work! I couldn't match that to a card on ${toolName} though.` };
+      if (task.status === 'done') return { text: `*${task.title}* is already Done on ${toolName}. 👍` };
+      const fromCol = STATUS_COLUMN[task.status];
+      pendingSuggestion = {
+        actionType: 'complete',
+        taskId: task.id,
+        description: `Move ${task.title} to Done`,
+        execute: () => {
+          store.completeTask(task.id);
+          const p = store.getSprintProgress();
+          const isComplete = p.done === p.total;
+          if (isComplete) {
+            return {
+              text: `🎉🎉🎉 That's ALL of them! ${store.sprint.name} is DONE!\n\n*${p.total}/${p.total} complete on ${toolName}*\n\nIncredible work team! 🚀`,
+              isSprintComplete: true,
+              syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Done' },
+            };
+          }
+          return {
+            text: `✓ Moved *${task.title}* → Done on ${toolName}.\n${store.sprint.name}: ${p.done}/${p.total} complete (${p.percent}%)`,
+            syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Done' },
+            isTaskComplete: true,
+          };
+        },
+      };
+      return {
+        text: `Nice! Want me to move *${task.title}* to Done on ${toolName}?`,
+        quickReplies: ['✅ Yes', 'Not yet', 'Wrong task'],
+      };
+    },
+  },
+  {
+    regex: /^(.+?)\s+is\s+blocked(?:\s+(?:by|on)\s+(.+))?[\s.!]*$/i,
+    handler: (match) => {
+      const store = useSimulationStore.getState();
+      const task = store.findTask(match[1]);
+      if (!task) return { text: `I couldn't match that to a card on ${toolName}.` };
+      const reason = match[2]?.trim();
+      pendingSuggestion = {
+        actionType: 'block',
+        taskId: task.id,
+        description: `Flag ${task.title} as blocked`,
+        execute: () => {
+          store.blockTask(task.id, reason);
+          return {
+            text: `✓ Moved *${task.title}* → Blocked on ${toolName}.${reason ? ` Reason: ${reason}` : ''}\nI'll remind the group if it stays blocked for 48h.`,
+            syncAction: { type: 'move', cardTitle: task.title, fromColumn: STATUS_COLUMN[task.status], toColumn: 'Blocked' },
+          };
+        },
+      };
+      return {
+        text: `Flag *${task.title}* as blocked on ${toolName}?${reason ? ` Reason: "${reason}"` : ''}`,
+        quickReplies: ['🚫 Yes, block it', 'No'],
+      };
+    },
+  },
+  {
+    regex: /^(?:let'?s\s+)?(?:cut|remove)\s+(.+?)(?:\s+from\s+(?:this\s+)?sprint)?$/i,
+    handler: (match) => {
+      const store = useSimulationStore.getState();
+      const task = store.findTask(match[1]);
+      if (!task) return { text: `Couldn't find *${match[1]}* on ${toolName}.` };
+      pendingSuggestion = {
+        actionType: 'backlog',
+        taskId: task.id,
+        description: `Move ${task.title} to backlog`,
+        execute: () => {
+          const fromCol = STATUS_COLUMN[task.status];
+          store.completeTask(task.id);
+          const p = store.getSprintProgress();
+          return {
+            text: `✓ Moved *${task.title}* → Backlog on ${toolName}.\n${store.sprint.name} is now ${p.done}/${p.total} (${p.percent}%) — tighter scope, faster ship. 🚢`,
+            syncAction: { type: 'move', cardTitle: task.title, fromColumn: fromCol, toColumn: 'Backlog' },
+          };
+        },
+      };
+      return {
+        text: `Move *${task.title}* to Backlog on ${toolName}?`,
+        quickReplies: ['Yes, backlog', 'Keep it'],
       };
     },
   },
 
-  // ASSIGNMENT
+  // ──────────────────────────────────────────────────────
+  // NON-@WAPA QUERIES (still reference tool)
+  // ──────────────────────────────────────────────────────
+  {
+    regex: /^(?:what'?s on my plate|my tasks?|what do i have|show me my tasks?)[\s?!]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const tasks = store.getMyTasks();
+      if (tasks.length === 0) return { text: `You're all clear on ${toolName}! 🎉`, quickReplies: ['Sprint status'] };
+      return {
+        text: `📋 Here's your plate from ${toolName}, ${store.currentUser.firstName}:\n\n${tasks.map(formatTaskLine).join('\n')}\n\n${tasks.length} card${tasks.length !== 1 ? 's' : ''} assigned to you.`,
+        quickReplies: ['Sprint status'],
+      };
+    },
+  },
+  {
+    regex: /^(?:how'?s the sprint|sprint status|are we on track)[\s?!]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const p = store.getSprintProgress();
+      const end = new Date(store.sprint.endDate);
+      const daysLeft = Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000));
+      return {
+        text: `📊 *${store.sprint.name} from ${toolName}:*\n\n${progressBar(p.percent)} ${p.percent}%\n✅ ${p.done} done · 🔨 ${p.inProgress} in progress · 🚫 ${p.blocked} blocked · 📝 ${p.todo} todo\n\n${daysLeft} day${daysLeft !== 1 ? 's' : ''} left.`,
+        quickReplies: ['My tasks', 'Show blockers'],
+      };
+    },
+  },
+  {
+    regex: /^(?:what'?s blocked|show blockers?|blocked tasks?)[\s?!]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const blocked = store.getBlockedTasks();
+      if (blocked.length === 0) return { text: `No blockers on ${toolName}! 🎉` };
+      const lines = blocked.map((t, i) => `${i + 1}. *${t.title}* — ${t.blockReason || 'no reason'}`).join('\n');
+      return {
+        text: `🚫 Blocked on your ${toolName} board:\n\n${lines}\n\nWant me to ping the team?`,
+        quickReplies: ['Yes, ping them', "No, I'll handle it"],
+      };
+    },
+  },
+  {
+    regex: /^(?:due today|what'?s due today)[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const tasks = store.getTasksDueToday();
+      if (tasks.length === 0) return { text: `Nothing due today on ${toolName}! 🎉` };
+      return { text: `📅 Due today on ${toolName}:\n\n${tasks.map(formatTaskLine).join('\n')}` };
+    },
+  },
+  {
+    regex: /^(?:overdue|overdue tasks?)[\s?]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const tasks = store.getOverdueTasks();
+      if (tasks.length === 0) return { text: `No overdue cards on ${toolName}! 🎉` };
+      return { text: `⚠️ Overdue on ${toolName}:\n\n${tasks.map(formatTaskLine).join('\n')}` };
+    },
+  },
+  {
+    regex: /^(?:standup|daily|daily standup)[\s?!]*$/i,
+    handler: () => {
+      const store = useSimulationStore.getState();
+      const p = store.getSprintProgress();
+      const overdue = store.getOverdueTasks();
+      const blocked = store.getBlockedTasks();
+      const dueToday = store.getTasksDueToday();
+      let text = `☀️ *Morning standup — ${store.sprint.name} from ${toolName}:*\n\n📋 ${p.total} cards · ✅ ${p.done} done · 🔨 ${p.inProgress} in progress · 🚫 ${p.blocked} blocked`;
+      if (overdue.length > 0) text += `\n\n🔴 Overdue:\n${overdue.map(t => `• *${t.title}* (${t.assignee.firstName})`).join('\n')}`;
+      if (blocked.length > 0) text += `\n\n🚫 Blocked:\n${blocked.map(t => `• *${t.title}* — ${t.blockReason || 'no reason'}`).join('\n')}`;
+      if (dueToday.length > 0) text += `\n\n📅 Due today:\n${dueToday.map(t => `• *${t.title}* (${t.assignee.firstName})`).join('\n')}`;
+      return { text, quickReplies: ['My tasks', 'Show blockers'] };
+    },
+  },
+
+  // ──────────────────────────────────────────────────────
+  // TASK CREATION (bridge-aware)
+  // ──────────────────────────────────────────────────────
+  {
+    regex: /^(?:@wapa\s+)?(?:add task[:\s]+|new task[:\s]+|create task[:\s]+)(.+)/i,
+    handler: (match) => {
+      const store = useSimulationStore.getState();
+      const title = match[1].trim();
+      const task = store.addTask(title);
+      return {
+        text: `✅ Added *${task.title}* to ${toolName} — assigned to you, due ${formatDueDate(task.dueDate)}.\nWant to set a priority?`,
+        syncAction: { type: 'create', cardTitle: task.title, toColumn: 'Todo' },
+        quickReplies: ['Low', 'Medium', 'High', 'Urgent'],
+      };
+    },
+  },
+
+  // ──────────────────────────────────────────────────────
+  // ASSIGNMENT (non @wapa - suggest)
+  // ──────────────────────────────────────────────────────
   {
     regex: /^(?:assign|give)\s+(.+?)\s+to\s+(.+)/i,
     handler: (match) => {
       const store = useSimulationStore.getState();
       const task = store.findTask(match[1]);
       const user = findUserByName(match[2]);
-      if (!task) return { text: `Couldn't find task "${match[1]}". Try *my tasks* to see available tasks.` };
+      if (!task) return { text: `Couldn't find *${match[1]}* on ${toolName}.` };
       if (!user) return { text: `I don't know anyone named "${match[2]}". Team: Alex, Maya, Jordan, Sam, Riley.` };
-      store.assignTask(task.id, user);
+      pendingSuggestion = {
+        actionType: 'assign',
+        taskId: task.id,
+        description: `Assign ${task.title} to ${user.firstName}`,
+        execute: () => {
+          store.assignTask(task.id, user);
+          return {
+            text: `✓ *${task.title}* assigned to ${user.firstName} on ${toolName}. 👍`,
+            syncAction: { type: 'update', cardTitle: task.title, toColumn: STATUS_COLUMN[task.status] },
+          };
+        },
+      };
       return {
-        text: `Done \u2014 ${user.firstName}'s on *${task.title}* \u{1F44D}\nI'll let ${user.firstName === 'Alex' ? 'you' : 'them'} know in the group chat.`,
-        quickReplies: ['My tasks', 'Sprint status'],
+        text: `Move *${task.title}* to ${user.firstName} on ${toolName}?`,
+        quickReplies: ['✅ Yes', 'No'],
       };
     },
   },
-  {
-    regex: /^(.+?)\s+should do\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const user = findUserByName(match[1]);
-      const task = store.findTask(match[2]);
-      if (!user) return { text: `I don't know anyone named "${match[1]}". Team: Alex, Maya, Jordan, Sam, Riley.` };
-      if (!task) return { text: `Couldn't find task "${match[2]}".` };
-      store.assignTask(task.id, user);
-      return { text: `Done \u2014 ${user.firstName}'s on *${task.title}* \u{1F44D}` };
-    },
-  },
 
-  // BLOCKING
+  // ──────────────────────────────────────────────────────
+  // QUICK REPLY HANDLERS
+  // ──────────────────────────────────────────────────────
   {
-    regex: /^(.+?)\s+is blocked(?:\s+by\s+(.+))?$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      const reason = match[2]?.trim();
-      store.blockTask(task.id, reason);
-      if (reason) {
-        return {
-          text: `\u{1F6AB} *${task.title}* is blocked \u2014 ${reason}\nI'll flag it for the team.`,
-          quickReplies: ['Show blockers', 'Sprint status'],
-        };
-      }
-      return { text: `\u{1F6AB} *${task.title}* is blocked.\nWhat's the reason?` };
-    },
+    regex: /^(?:yes,? ping them|ping the team)$/i,
+    handler: () => ({
+      text: `Done! I've pinged the team about the blockers in the group chat. 📢\nI'll follow up if they don't respond by end of day.`,
+      quickReplies: ['Sprint status', 'My tasks'],
+    }),
   },
   {
-    regex: /^(?:unblock)\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      store.unblockTask(task.id);
-      return {
-        text: `Back in action \u2705 *${task.title}* moved to in progress.`,
-        quickReplies: ['My tasks', 'Sprint status'],
-      };
-    },
+    regex: /^(?:no,? i'?ll handle it|i'll handle it)$/i,
+    handler: () => ({ text: `Got it, it's all yours. 💪` }),
   },
   {
-    regex: /^(.+?)\s+is unblocked$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      store.unblockTask(task.id);
-      return { text: `Back in action \u2705 *${task.title}* moved to in progress.` };
-    },
-  },
-
-  // PRIORITY
-  {
-    regex: /^(.+?)\s+is (urgent|high priority|low priority|medium priority)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      const pMap: Record<string, SimTask['priority']> = { 'urgent': 'urgent', 'high priority': 'high', 'medium priority': 'medium', 'low priority': 'low' };
-      const priority = pMap[match[2].toLowerCase()] || 'medium';
-      store.setPriority(task.id, priority);
-      const icon = PRIORITY_ICONS[priority];
-      return { text: `${icon} *${task.title}* bumped to ${priority}. On it.` };
-    },
-  },
-  {
-    regex: /^deprioritize\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      store.setPriority(task.id, 'low');
-      return { text: `\u{1F7E2} *${task.title}* set to low priority.` };
-    },
-  },
-
-  // DUE DATE
-  {
-    regex: /^(?:push|extend)\s+(.+?)\s+to\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      const date = parseDate(match[2]);
-      store.setDueDate(task.id, date);
-      return { text: `\u{1F4C5} *${task.title}* pushed to ${formatDueDate(date)}. Got it.` };
-    },
-  },
-  {
-    regex: /^(.+?)\s+due\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      const date = parseDate(match[2]);
-      store.setDueDate(task.id, date);
-      return { text: `\u{1F4C5} *${task.title}* due ${formatDueDate(date)}. Got it.` };
-    },
-  },
-
-  // NOTES
-  {
-    regex: /^note on\s+(.+?):\s+(.+)/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const task = store.findTask(match[1]);
-      if (!task) return { text: `Couldn't find task "${match[1]}".` };
-      store.addNote(task.id, match[2].trim());
-      const preview = match[2].trim().slice(0, 40);
-      return { text: `\u{1F4DD} Noted on *${task.title}* \u2014 '${preview}${match[2].length > 40 ? '...' : ''}'` };
-    },
-  },
-  {
-    regex: /^(?:note:\s*|btw\s+)(.+)/i,
+    regex: /^(low|medium|high|urgent)$/i,
     handler: (match) => {
       const store = useSimulationStore.getState();
       const taskId = store.lastMentionedTaskId;
-      if (!taskId) return { text: `Which task should I add this note to? Try *note on [task]: [text]*` };
+      if (!taskId) return { text: `What task should I set to ${match[1].toLowerCase()}?` };
       const task = store.tasks.find(t => t.id === taskId);
-      if (!task) return { text: `Which task should I add this note to?` };
-      store.addNote(task.id, match[1].trim());
-      const preview = match[1].trim().slice(0, 40);
-      return { text: `\u{1F4DD} Noted on *${task.title}* \u2014 '${preview}${match[1].length > 40 ? '...' : ''}'` };
-    },
-  },
-
-  // QUERIES: MY TASKS
-  {
-    regex: /^(?:what'?s on my plate|my tasks?|what do i have|show me my tasks?|what'?s left)[\s?!]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const tasks = store.getMyTasks();
-      if (tasks.length === 0) return { text: `You're all clear! No tasks assigned to you right now \u{1F389}`, quickReplies: ['Add a task', 'Sprint status'] };
-      const dueToday = tasks.filter(t => t.dueDate === new Date().toISOString().slice(0, 10)).length;
-      const lines = tasks.map(formatTaskLine).join('\n');
-      const dueTodayText = dueToday > 0 ? `${dueToday} due today. ` : '';
+      if (!task) return { text: `What task should I set to ${match[1].toLowerCase()}?` };
+      const priority = match[1].toLowerCase() as SimTask['priority'];
+      store.setPriority(task.id, priority);
       return {
-        text: `Here's your plate, ${store.currentUser.firstName}:\n\n${lines}\n\n${tasks.length} tasks \u2014 ${dueTodayText}You got this \u{1F4AA}`,
-        quickReplies: ['Sprint status', 'Add a task'],
+        text: `${PRIORITY_ICONS[priority]} *${task.title}* set to ${priority} on ${toolName}. Got it.`,
+        syncAction: { type: 'update', cardTitle: task.title, toColumn: STATUS_COLUMN[task.status] },
       };
     },
   },
-
-  // QUERIES: SPRINT STATUS
   {
-    regex: /^(?:how'?s the sprint|sprint status|are we on track|sprint update)[\s?!]*$/i,
+    regex: /^yes,? add note$/i,
     handler: () => {
-      const store = useSimulationStore.getState();
-      const p = store.getSprintProgress();
-      const now = new Date();
-      const end = new Date(store.sprint.endDate);
-      const daysLeft = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
-      let blockerText = '';
-      if (p.blocked > 0) {
-        const blocked = store.getBlockedTasks();
-        const blockerLines = blocked.map(t => `\u{1F6AB} *${t.title}* \u2014 ${t.blockReason || 'no reason'}`).join('\n');
-        blockerText = `\n\n${p.blocked} blocker${p.blocked > 1 ? 's' : ''} need attention:\n${blockerLines}`;
+      if (pendingSuggestion) {
+        const result = pendingSuggestion.execute();
+        pendingSuggestion = null;
+        return result;
       }
-      return {
-        text: `\u{1F4CA} *${store.sprint.name}: ${store.project.name}*\n\n${progressBar(p.percent)} ${p.percent}%\n\n\u2705 ${p.done} done \u00B7 \u{1F504} ${p.inProgress} in progress \u00B7 \u{1F6AB} ${p.blocked} blocked \u00B7 \u{1F4CB} ${p.todo} todo\n\n${daysLeft} days left \u2014 ${p.percent >= 50 ? 'on track!' : 'let\'s push!'}${blockerText}`,
-        quickReplies: p.blocked > 0 ? ['Show blockers', 'My tasks'] : ['My tasks', 'Add a task'],
-      };
+      return { text: `Nothing pending to update.` };
     },
   },
-
-  // QUERIES: BLOCKED
   {
-    regex: /^(?:what'?s blocked|show blockers?|blocked tasks?)[\s?!]*$/i,
+    regex: /^🚫 ?yes,? block it$/i,
     handler: () => {
-      const store = useSimulationStore.getState();
-      const blocked = store.getBlockedTasks();
-      if (blocked.length === 0) return { text: `No blockers right now! \u{1F389}`, quickReplies: ['Sprint status', 'My tasks'] };
-      const lines = blocked.map((t, i) => {
-        const days = Math.max(1, Math.ceil((Date.now() - new Date(t.createdAt).getTime()) / 86400000));
-        return `${i + 1}. *${t.title}* \u2014 ${t.blockReason || 'no reason'} (${days} days)`;
-      }).join('\n');
-      return {
-        text: `\u{1F6AB} ${blocked.length} task${blocked.length > 1 ? 's' : ''} blocked right now:\n\n${lines}\n\nWant me to ping the team about these?`,
-        quickReplies: ['Yes, ping them', "No, I'll handle it"],
-      };
-    },
-  },
-
-  // QUERIES: PERSON'S TASKS
-  {
-    regex: /^(?:what'?s|what is)\s+(\w+)\s+working on[\s?]*$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const tasks = store.getTasksByAssignee(match[1]);
-      const active = tasks.filter(t => t.status !== 'done');
-      if (active.length === 0) return { text: `${match[1]} has no active tasks right now.` };
-      const lines = active.map(formatTaskLine).join('\n');
-      return { text: `${match[1]}'s plate:\n\n${lines}` };
-    },
-  },
-  {
-    regex: /^(\w+)'?s? tasks?[\s?]*$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const name = match[1];
-      if (name.toLowerCase() === 'my') {
-        const tasks = store.getMyTasks();
-        if (tasks.length === 0) return { text: `You're all clear!`, quickReplies: ['Add a task'] };
-        return { text: `Here's your plate:\n\n${tasks.map(formatTaskLine).join('\n')}` };
+      if (pendingSuggestion) {
+        const result = pendingSuggestion.execute();
+        pendingSuggestion = null;
+        return result;
       }
-      const tasks = store.getTasksByAssignee(name);
-      const active = tasks.filter(t => t.status !== 'done');
-      if (active.length === 0) return { text: `${name} has no active tasks.` };
-      return { text: `${name}'s plate:\n\n${active.map(formatTaskLine).join('\n')}` };
+      return { text: `Nothing pending.` };
+    },
+  },
+  {
+    regex: /^yes,? backlog$/i,
+    handler: () => {
+      if (pendingSuggestion) {
+        const result = pendingSuggestion.execute();
+        pendingSuggestion = null;
+        return result;
+      }
+      return { text: `Nothing pending.` };
     },
   },
 
-  // QUERIES: DUE DATE FILTERS
-  {
-    regex: /^(?:what'?s due today|due today)[\s?]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const tasks = store.getTasksDueToday();
-      if (tasks.length === 0) return { text: `Nothing due today \u{1F389}`, quickReplies: ['My tasks', 'Sprint status'] };
-      return { text: `Due today:\n\n${tasks.map(formatTaskLine).join('\n')}` };
-    },
-  },
-  {
-    regex: /^(?:what'?s due this week|due this week)[\s?]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const tasks = store.getTasksDueThisWeek();
-      if (tasks.length === 0) return { text: `Nothing due this week \u{1F389}` };
-      return { text: `Due this week:\n\n${tasks.map(formatTaskLine).join('\n')}` };
-    },
-  },
-  {
-    regex: /^(?:overdue tasks?|overdue)[\s?]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const tasks = store.getOverdueTasks();
-      if (tasks.length === 0) return { text: `No overdue tasks! \u{1F389}` };
-      return { text: `\u{26A0}\u{FE0F} Overdue:\n\n${tasks.map(formatTaskLine).join('\n')}` };
-    },
-  },
-
+  // ──────────────────────────────────────────────────────
   // CONVERSATION
+  // ──────────────────────────────────────────────────────
   {
     regex: /^(?:hi|hey|hello|yo|sup)[\s!.]*$/i,
     handler: () => {
       const store = useSimulationStore.getState();
       const myTasks = store.getMyTasks();
-      const dueToday = store.getTasksDueToday();
       return {
-        text: `Hey ${store.currentUser.firstName}! \u{1F44B} Ready to crush it today?\n\nYou've got ${myTasks.length} task${myTasks.length !== 1 ? 's' : ''} on your plate${dueToday.length > 0 ? ` \u2014 ${dueToday.length} due today` : ''}.\nType *my tasks* to see the details.`,
-        quickReplies: ['My tasks', 'Sprint status', 'Add a task'],
+        text: `Hey ${store.currentUser.firstName}! 👋 Your ${toolName} board has ${myTasks.length} task${myTasks.length !== 1 ? 's' : ''} on your plate.\nType *my tasks* or *sprint status* to see the details.`,
+        quickReplies: ['My tasks', 'Sprint status'],
       };
     },
   },
@@ -426,7 +536,7 @@ const patterns: Pattern[] = [
       const dueToday = store.getTasksDueToday();
       const lines = myTasks.slice(0, 4).map(formatTaskLine).join('\n');
       return {
-        text: `Good morning, ${store.currentUser.firstName}! \u2600\u{FE0F}\n\nHere's your day:\n\n${lines}\n\n${dueToday.length > 0 ? `${dueToday.length} task${dueToday.length !== 1 ? 's' : ''} due today. Let's get it \u{1F4AA}` : 'Nothing urgent today \u2014 good time to get ahead!'}`,
+        text: `Good morning, ${store.currentUser.firstName}! ☀️\n\nHere's your day from ${toolName}:\n\n${lines}\n\n${dueToday.length > 0 ? `${dueToday.length} due today. Let's get it 💪` : 'Nothing urgent — good time to get ahead!'}`,
         quickReplies: ['Sprint status', 'Show blockers'],
       };
     },
@@ -434,132 +544,22 @@ const patterns: Pattern[] = [
   {
     regex: /^(?:thanks?|thank you|ty|thx)[\s!.]*$/i,
     handler: () => ({
-      text: ['Anytime \u{1F44A}', 'You got it!', 'No problem \u{1F4AA}', 'Happy to help \u{1F64C}'][Math.floor(Math.random() * 4)],
+      text: ['Anytime 🤙', 'You got it!', 'No problem 💪', `Happy to help — ${toolName} is up to date. 🙌`][Math.floor(Math.random() * 4)],
     }),
   },
-
-  // HELP
   {
     regex: /^(?:help|what can you do|commands?)[\s?]*$/i,
     handler: () => ({
-      text: `Here's what I can do \u{1F4AC}\n\n*Tasks*\nadd task: [name] \u2014 create a task\ndone with [task] \u2014 mark complete\nassign [task] to [person] \u2014 reassign\n[task] is blocked \u2014 flag a blocker\n\n*Info*\nmy tasks \u2014 see your plate\nhow's the sprint \u2014 sprint progress\nwhat's blocked \u2014 view blockers\n\n*Other*\nnote on [task]: [text] \u2014 add a note\n[task] is urgent \u2014 set priority\npush [task] to [date] \u2014 change due date\n\nJust text me naturally \u2014 I'll figure it out! \u{1F919}`,
+      text: `I'm WAPA — I keep your ${toolName} board in sync with this chat. 💬\n\n*Bridge commands*\n@wapa mark [task] as done → update ${toolName}\n@wapa assign [task] to [person] → reassign\n@wapa move [task] to backlog → descope\n\n*Just chat naturally*\n"homepage is done" → I'll suggest a ${toolName} update\n"blocked on API keys" → I'll flag it\n\n*Info*\nmy tasks · sprint status · show blockers\ndue today · overdue · standup\n\nI listen to the group chat and suggest ${toolName} updates. You confirm with one tap. 👂`,
       quickReplies: ['My tasks', 'Sprint status'],
     }),
   },
-
-  // PROJECT / SPRINT
   {
-    regex: /^(?:new project|create project)[:\s]+(.+)/i,
-    handler: (match) => ({
-      text: `\u2705 *${match[1].trim()}* project created!\nI've set up Sprint 1 (2 weeks) to get you started.\n\nAdd your first task: *add task: [name]*`,
-      quickReplies: ['Add a task'],
-    }),
-  },
-  {
-    regex: /^start a new sprint[\s!]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      return {
-        text: `\u2705 *Sprint 5* is live! Runs for 2 weeks.\n\n${store.sprint.name} carryover: any incomplete tasks have been moved over.\n\nLet's go! \u{1F680}`,
-        quickReplies: ['My tasks', 'Sprint status'],
-      };
-    },
-  },
-
-  // Quick reply handlers
-  {
-    regex: /^(?:yes,? ping them|ping the team)$/i,
+    regex: /^(?:connect|setup|connect my (?:board|sheet))[\s?]*$/i,
     handler: () => ({
-      text: `Done! I've pinged the team about the blockers in the group chat \u{1F4E2}\nI'll follow up if they don't respond by end of day.`,
-      quickReplies: ['Sprint status', 'My tasks'],
+      text: `Sure! I can connect to your team's PM tool. What do you use?\n\nPaste your board URL and I'll hook it up.`,
+      quickReplies: ['Trello', 'Google Sheets', 'Asana'],
     }),
-  },
-  {
-    regex: /^(?:no,? i'?ll handle it|i'll handle it)$/i,
-    handler: () => ({
-      text: `Got it, it's all yours \u{1F4AA}`,
-    }),
-  },
-  {
-    regex: /^(?:show me around|let'?s go)$/i,
-    handler: () => ({
-      text: `Here's the deal \u2014 you text me, I manage your projects. No apps. No dashboards. Just chat. \u{1F4AC}\n\nTry it \u2014 type something like:\n*add task: design the homepage*`,
-      quickReplies: ['Add a task', 'My tasks', 'Help'],
-    }),
-  },
-
-  // Priority quick replies
-  {
-    regex: /^(low|medium|high|urgent)$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const taskId = store.lastMentionedTaskId;
-      if (!taskId) return { text: `What task should I set to ${match[1].toLowerCase()}?` };
-      const task = store.tasks.find(t => t.id === taskId);
-      if (!task) return { text: `What task should I set to ${match[1].toLowerCase()}?` };
-      const priority = match[1].toLowerCase() as SimTask['priority'];
-      store.setPriority(task.id, priority);
-      return { text: `${PRIORITY_ICONS[priority]} *${task.title}* set to ${priority}. Got it.` };
-    },
-  },
-
-  // STANDUP
-  {
-    regex: /^(?:standup|daily|daily standup)[\s?!]*$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const userSummaries = store.users.map(u => {
-        const userTasks = store.tasks.filter(t => t.assignee.id === u.id);
-        const done = userTasks.filter(t => t.status === 'done').slice(-1);
-        const inProg = userTasks.filter(t => t.status === 'in_progress').slice(0, 1);
-        const blocked = userTasks.filter(t => t.status === 'blocked').slice(0, 1);
-        let summary = u.firstName + ': ';
-        if (done.length > 0) summary += `Completed ${done[0].title}`;
-        if (inProg.length > 0) summary += `${done.length > 0 ? ' \u2192 ' : ''}Working on ${inProg[0].title}`;
-        if (blocked.length > 0) summary += ` \u{1F6AB} Blocked on ${blocked[0].title}`;
-        if (!done.length && !inProg.length && !blocked.length) summary += 'No updates';
-        return summary;
-      }).join('\n');
-      const blockedCount = store.getBlockedTasks().length;
-      return {
-        text: `Standup Summary for today:\n\n${userSummaries}${blockedCount > 0 ? `\n\n${blockedCount} blocker${blockedCount > 1 ? 's' : ''} need attention.` : ''}`,
-        quickReplies: ['Show blockers', 'Sprint status'],
-      };
-    },
-  },
-
-  // Mark as done shorthand
-  {
-    regex: /^mark (?:as )?done$/i,
-    handler: () => {
-      const store = useSimulationStore.getState();
-      const taskId = store.lastMentionedTaskId;
-      if (!taskId) return { text: `Which task should I mark as done? Try *done with [task name]*` };
-      const task = store.tasks.find(t => t.id === taskId);
-      if (!task) return { text: `Which task should I mark as done?` };
-      store.completeTask(task.id);
-      const progress = store.getSprintProgress();
-      return {
-        text: `\u{1F389} Nice \u2014 *${task.title}* is done!\n${store.sprint.name}: ${progressBar(progress.percent)} ${progress.percent}%`,
-        quickReplies: ['My tasks', 'Sprint status'],
-        isTaskComplete: true,
-      };
-    },
-  },
-
-  // Assign it shorthand
-  {
-    regex: /^assign (?:it )?to (\w+)$/i,
-    handler: (match) => {
-      const store = useSimulationStore.getState();
-      const taskId = store.lastMentionedTaskId;
-      const user = findUserByName(match[1]);
-      if (!taskId || !user) return { text: `Which task and to whom? Try *assign [task] to [person]*` };
-      const task = store.tasks.find(t => t.id === taskId);
-      if (!task) return { text: `Which task? Try *assign [task] to [person]*` };
-      store.assignTask(task.id, user);
-      return { text: `Done \u2014 ${user.firstName}'s on *${task.title}* \u{1F44D}` };
-    },
   },
 ];
 
@@ -570,7 +570,11 @@ export function processMessage(text: string): SimResponse {
     if (match) return pattern.handler(match);
   }
   return {
-    text: `Hmm, I didn't catch that \u{1F914}\nTry something like:\n\u2022 *add task: design the footer*\n\u2022 *done with [task name]*\n\u2022 *how's the sprint*\n\nOr type *help* for everything I can do.`,
+    text: `I'm listening to the chat and watching your ${toolName} board. 👂\n\nTry:\n• *@wapa mark [task] as done*\n• *@wapa sprint status*\n• Or just chat naturally — I'll catch task updates.\n\nType *help* for more.`,
     quickReplies: ['Help', 'My tasks', 'Sprint status'],
   };
+}
+
+export function clearPendingSuggestion() {
+  pendingSuggestion = null;
 }

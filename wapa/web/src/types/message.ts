@@ -11,6 +11,13 @@ export interface ChatMessage {
   senderAvatar?: string;
   quickReplies?: string[];
   isSystem?: boolean;
+  /** If this message triggered a board sync, the sync event details */
+  syncAction?: {
+    type: 'move' | 'create' | 'update';
+    cardTitle: string;
+    fromColumn?: string;
+    toColumn: string;
+  };
 }
 
 export interface Chat {

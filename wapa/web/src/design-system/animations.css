@@ -135,3 +135,38 @@
     box-shadow: 0 0 0 8px rgba(16, 184, 87, 0);
   }
 }
+
+/* Board sync animations */
+@keyframes card-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(0, 168, 132, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 168, 132, 0); }
+}
+
+@keyframes sync-flash {
+  0% { background-color: rgba(0, 168, 132, 0.2); }
+  100% { background-color: transparent; }
+}
+
+@keyframes progress-tick {
+  0% { transform: scaleX(var(--progress-from, 0)); }
+  100% { transform: scaleX(var(--progress-to, 1)); }
+}
+
+@keyframes toast-slide-in {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes toast-slide-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-20px); opacity: 0; }
+}
+
+.card-just-synced {
+  animation: card-pulse 0.6s ease-out;
+}
+
+.sync-flash {
+  animation: sync-flash 0.8s ease-out;
+}

@@ -29,6 +29,15 @@
   --wa-date-divider-text: #54656f;
   --wa-search-bg: #f0f2f5;
 
+  /* Trello Board */
+  --board-bg: #f4f5f7;
+  --board-column-bg: #ebecf0;
+  --board-card-bg: #ffffff;
+  --board-card-shadow: 0 1px 0 rgba(9,30,66,0.25);
+  --board-header-bg: #026aa7;
+  --board-text: #172b4d;
+  --board-text-secondary: #5e6c84;
+
   /* Dashboard Neutrals */
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
@@ -140,4 +149,13 @@
   --text-primary: #e9edef;
   --text-secondary: #8696a0;
   --text-tertiary: #667781;
+
+  /* Trello Board - Dark */
+  --board-bg: #1a1a2e;
+  --board-column-bg: #202040;
+  --board-card-bg: #2a2a4a;
+  --board-card-shadow: 0 1px 0 rgba(0,0,0,0.4);
+  --board-header-bg: #1a3a5c;
+  --board-text: #e2e8f0;
+  --board-text-secondary: #8696a0;
 }

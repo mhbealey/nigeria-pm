@@ -10,13 +10,15 @@ import {
 } from 'lucide-react';
 
 interface DemoControlsProps {
-  scenarios: Array<{ id: string; label: string }>;
+  scenarios: Array<{ id: string; label: string; description?: string }>;
   activeScenario: string;
   isPlaying: boolean;
   speed: number;
   darkMode: boolean;
   soundEnabled: boolean;
   phoneFrame: boolean;
+  showBoard: boolean;
+  tool: 'trello' | 'sheets';
   onSelectScenario: (id: string) => void;
   onTogglePlay: () => void;
   onReset: () => void;
@@ -24,6 +26,8 @@ interface DemoControlsProps {
   onToggleDarkMode: () => void;
   onToggleSound: () => void;
   onTogglePhoneFrame: () => void;
+  onToggleBoard: () => void;
+  onToolChange: (tool: 'trello' | 'sheets') => void;
   onResetAll: () => void;
 }
 
@@ -35,6 +39,8 @@ export function DemoControls({
   darkMode,
   soundEnabled,
   phoneFrame,
+  showBoard,
+  tool,
   onSelectScenario,
   onTogglePlay,
   onReset,
@@ -42,6 +48,8 @@ export function DemoControls({
   onToggleDarkMode,
   onToggleSound,
   onTogglePhoneFrame,
+  onToggleBoard,
+  onToolChange,
   onResetAll,
 }: DemoControlsProps) {
   const [open, setOpen] = useState(false);
@@ -100,6 +108,32 @@ export function DemoControls({
                 </button>
 
                 <div className="px-5 pt-5 pb-6 space-y-4">
+                  {/* Tool selector */}
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                      PM Tool
+                    </label>
+                    <div className="flex gap-2">
+                      {([
+                        { id: 'trello' as const, emoji: '📋', label: 'Trello' },
+                        { id: 'sheets' as const, emoji: '📊', label: 'Sheets' },
+                      ]).map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => onToolChange(t.id)}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-full transition-all ${
+                            tool === t.id
+                              ? 'bg-[#00a884] text-white shadow-sm'
+                              : 'bg-white/10 text-white/50 hover:text-white hover:bg-white/15'
+                          }`}
+                        >
+                          <span className="text-base leading-none">{t.emoji}</span>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Scenario selector */}
                   <div>
                     <label className="block text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
@@ -183,6 +217,13 @@ export function DemoControls({
                       label="Phone frame"
                       checked={phoneFrame}
                       onChange={onTogglePhoneFrame}
+                      desktopOnly
+                    />
+                    <ToggleRow
+                      emoji="📋"
+                      label="Show board"
+                      checked={showBoard}
+                      onChange={onToggleBoard}
                       desktopOnly
                     />
                   </div>
