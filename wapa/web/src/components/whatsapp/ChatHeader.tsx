@@ -5,6 +5,7 @@ interface ChatHeaderProps {
   name?: string;
   status?: string;
   avatarText?: string;
+  avatarColor?: string;
   onBack?: () => void;
 }
 
@@ -12,55 +13,78 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   name = 'WAPA',
   status = 'online',
   avatarText = 'W',
+  avatarColor = '#25d366',
   onBack,
 }) => {
   return (
     <div
-      className="flex items-center px-2 shrink-0"
+      className="flex items-center shrink-0"
       style={{
         height: 56,
-        backgroundColor: '#008069',
+        backgroundColor: 'var(--wa-header, #008069)',
+        paddingLeft: 4,
+        paddingRight: 8,
         fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
       }}
     >
       {/* Back arrow */}
       <button
         onClick={onBack}
-        className="flex items-center justify-center w-8 h-8 -ml-1"
+        className="flex items-center justify-center"
+        style={{ width: 32, height: 56 }}
       >
-        <ChevronLeft className="w-6 h-6 text-white" strokeWidth={2} />
+        <ChevronLeft className="text-white" style={{ width: 24, height: 24 }} strokeWidth={1.5} />
       </button>
 
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-[#25d366] flex items-center justify-center ml-0.5 shrink-0">
-        <span className="text-white text-base font-bold">{avatarText}</span>
+      <div
+        className="rounded-full flex items-center justify-center shrink-0"
+        style={{
+          width: 40,
+          height: 40,
+          backgroundColor: avatarColor,
+          marginLeft: 2,
+        }}
+      >
+        <span className="text-white text-base font-bold leading-none">{avatarText}</span>
       </div>
 
       {/* Name + Status */}
-      <div className="flex flex-col ml-3 min-w-0 flex-1">
-        <span className="text-white text-[16.5px] font-medium leading-tight truncate">
+      <div className="flex flex-col min-w-0 flex-1" style={{ marginLeft: 12 }}>
+        <span
+          className="truncate"
+          style={{
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: '20px',
+          }}
+        >
           {name}
         </span>
         {status && (
-          <span className="text-[12.5px] leading-tight text-green-100">
+          <span
+            style={{
+              color: '#a1c7b9',
+              fontSize: 13,
+              lineHeight: '16px',
+            }}
+          >
             {status}
           </span>
         )}
       </div>
 
       {/* Action icons */}
-      <div className="flex items-center gap-4 ml-auto">
-        <button className="flex items-center justify-center w-8 h-8">
-          <Video className="w-[22px] h-[22px] text-white" strokeWidth={1.8} />
+      <div className="flex items-center" style={{ gap: 20, marginLeft: 'auto' }}>
+        <button className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
+          <Video className="text-white" style={{ width: 24, height: 24 }} strokeWidth={1.5} />
         </button>
-        <button className="flex items-center justify-center w-8 h-8">
-          <Phone className="w-[20px] h-[20px] text-white" strokeWidth={1.8} />
+        <button className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
+          <Phone className="text-white" style={{ width: 24, height: 24 }} strokeWidth={1.5} />
         </button>
-        <button className="flex items-center justify-center w-8 h-8">
-          <MoreVertical
-            className="w-[20px] h-[20px] text-white"
-            strokeWidth={1.8}
-          />
+        <button className="flex items-center justify-center" style={{ width: 24, height: 24 }}>
+          <MoreVertical className="text-white" style={{ width: 24, height: 24 }} strokeWidth={1.5} />
         </button>
       </div>
     </div>

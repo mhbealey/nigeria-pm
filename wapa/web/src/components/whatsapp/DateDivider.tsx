@@ -4,18 +4,31 @@ interface DateDividerProps {
   date: string;
 }
 
+function formatLabel(date: string): string {
+  const lower = date.toLowerCase();
+  if (lower === 'today' || lower === 'yesterday') {
+    return date.toUpperCase();
+  }
+  return date;
+}
+
 const DateDivider: React.FC<DateDividerProps> = ({ date }) => {
   return (
     <div className="flex justify-center my-3">
       <div
-        className="rounded-full px-3 py-1 text-[12px] leading-tight shadow-sm"
+        className="shadow-sm"
         style={{
-          backgroundColor: 'rgba(225, 221, 211, 0.9)',
-          color: '#54656f',
-          fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
+          backgroundColor: 'var(--wa-date-divider-bg, rgba(225, 221, 211, 0.9))',
+          color: 'var(--wa-date-divider-text, #54656f)',
+          fontSize: '12.5px',
+          lineHeight: 1.3,
+          padding: '5px 12px',
+          borderRadius: '7.5px',
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
         }}
       >
-        {date}
+        {formatLabel(date)}
       </div>
     </div>
   );

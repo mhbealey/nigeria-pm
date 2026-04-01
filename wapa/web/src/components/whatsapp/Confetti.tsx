@@ -1,75 +1,96 @@
-import React, { useMemo } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ConfettiProps {
   show: boolean;
 }
 
-const COLORS = [
-  '#25d366', '#00a884', '#128c7e', '#FFD700', '#FFA500',
-  '#008069', '#34D399', '#FBBF24', '#10B981', '#F59E0B',
-  '#059669', '#D97706', '#047857', '#B45309', '#065F46', '#92400E',
-];
+const COLORS = ['#10b857', '#fbbf24', '#00a884', '#ffffff'];
 
 interface Particle {
   id: number;
   color: string;
-  x: number;
-  delay: number;
+  startX: number;
+  startY: number;
+  dx: number;
+  dy: number;
   rotation: number;
   size: number;
+  delay: number;
+  shape: 'circle' | 'square';
 }
 
 const Confetti: React.FC<ConfettiProps> = ({ show }) => {
+  const [visible, setVisible] = useState(false);
+
   const particles = useMemo<Particle[]>(() => {
-    return Array.from({ length: 16 }, (_, i) => ({
+    const count = 16 + Math.floor(Math.random() * 9); // 16-24
+    return Array.from({ length: count }, (_, i) => ({
       id: i,
       color: COLORS[i % COLORS.length],
-      x: Math.random() * 100,
-      delay: Math.random() * 0.3,
+      startX: 50, // center
+      startY: 50, // center
+      dx: (Math.random() - 0.5) * 200, // spread horizontally
+      dy: -(Math.random() * 120 + 40), // burst upward
       rotation: Math.random() * 720 - 360,
-      size: 6 + Math.random() * 6,
+      size: 5 + Math.random() * 5,
+      delay: Math.random() * 0.3,
+      shape: i % 2 === 0 ? 'circle' : 'square',
     }));
   }, []);
 
+  useEffect(() => {
+    if (show) {
+      setVisible(true);
+      const timer = setTimeout(() => setVisible(false), 2500);
+      return () => clearTimeout(timer);
+    } else {
+      setVisible(false);
+    }
+  }, [show]);
+
+  if (!visible) return null;
+
+  // Generate unique keyframes per particle
+  const keyframes = particles
+    .map(
+      (p) => `
+    @keyframes confetti-${p.id} {
+      0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+      15% {
+        transform: translate(${p.dx * 0.4}px, ${p.dy}px) rotate(${p.rotation * 0.3}deg) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(${p.dx}px, ${p.dy + 300}px) rotate(${p.rotation}deg) scale(0.2);
+        opacity: 0;
+      }
+    }
+  `
+    )
+    .join('\n');
+
   return (
-    <AnimatePresence>
-      {show && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
-          <style>{`
-            @keyframes confetti-fall {
-              0% {
-                transform: translateY(0) rotate(0deg) scale(1);
-                opacity: 1;
-              }
-              20% {
-                transform: translateY(-120px) rotate(180deg) scale(1);
-                opacity: 1;
-              }
-              100% {
-                transform: translateY(100vh) rotate(720deg) scale(0.3);
-                opacity: 0;
-              }
-            }
-          `}</style>
-          {particles.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                position: 'absolute',
-                left: `${p.x}%`,
-                top: '50%',
-                width: p.size,
-                height: p.size,
-                backgroundColor: p.color,
-                borderRadius: p.id % 3 === 0 ? '50%' : p.id % 3 === 1 ? '2px' : '0',
-                animation: `confetti-fall 1.5s ease-out ${p.delay}s forwards`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-    </AnimatePresence>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+      <style>{keyframes}</style>
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: 'absolute',
+            left: `${p.startX}%`,
+            top: `${p.startY}%`,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            borderRadius: p.shape === 'circle' ? '50%' : '1px',
+            animation: `confetti-${p.id} 2s ease-out ${p.delay}s forwards`,
+          }}
+        />
+      ))}
+    </div>
   );
 };
 

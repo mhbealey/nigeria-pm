@@ -8,11 +8,18 @@ const SystemMessage: React.FC<SystemMessageProps> = ({ text }) => {
   return (
     <div className="flex justify-center my-2">
       <div
-        className="rounded-lg px-3 py-1 text-[12.5px] leading-tight text-center max-w-[85%] shadow-sm"
+        className="shadow-sm"
         style={{
-          backgroundColor: 'rgba(253, 244, 197, 0.8)',
-          color: '#54656f',
-          fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
+          maxWidth: '85%',
+          textAlign: 'center',
+          fontSize: '12.5px',
+          lineHeight: 1.4,
+          padding: '6px 12px',
+          borderRadius: '7.5px',
+          backgroundColor: 'var(--wa-system-bg, rgba(253, 244, 197, 0.8))',
+          color: 'var(--wa-system-text, #54656f)',
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
         }}
       >
         {text}

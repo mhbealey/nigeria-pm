@@ -3,60 +3,118 @@ import { Search, MoreVertical } from 'lucide-react';
 import ChatListItem from './ChatListItem';
 
 interface ChatListProps {
-  onSelectChat?: (chatId: string) => void;
-  selectedChat?: string;
+  selectedChatId: string;
+  onSelectChat: (chatId: string) => void;
+  chats: Array<{
+    id: string;
+    name: string;
+    avatarText: string;
+    avatarColor: string;
+    lastMessage: string;
+    timestamp: string;
+    unreadCount: number;
+    isGroup?: boolean;
+  }>;
 }
 
-const defaultChats = [
+const defaultChats: ChatListProps['chats'] = [
   {
     id: 'wapa-dm',
     name: 'WAPA',
     avatarText: 'W',
     avatarColor: '#25d366',
-    lastMessage: 'Your sprint is on track! 3 tasks remaining.',
-    timestamp: '10:42 AM',
+    lastMessage: "Here's your plate today...",
+    timestamp: '9:41 AM',
     unreadCount: 2,
+    isGroup: false,
   },
   {
     id: 'website-redesign',
     name: 'Website Redesign',
     avatarText: 'WR',
     avatarColor: '#00a884',
-    lastMessage: 'Adaeze: Uploaded the new mockups',
-    timestamp: '9:15 AM',
+    lastMessage: 'WAPA: 🚫 Build the API is...',
+    timestamp: '9:30 AM',
     unreadCount: 0,
+    isGroup: true,
   },
   {
     id: 'marketing-sprint',
     name: 'Marketing Sprint',
     avatarText: 'MS',
     avatarColor: '#128c7e',
-    lastMessage: 'Chidi: The campaign metrics look great',
+    lastMessage: 'Sam: can we push the launch?',
     timestamp: 'Yesterday',
     unreadCount: 0,
+    isGroup: true,
   },
 ];
 
-const ChatList: React.FC<ChatListProps> = ({ onSelectChat, selectedChat }) => {
+const ChatList: React.FC<Partial<ChatListProps>> = ({
+  onSelectChat,
+  selectedChatId,
+  chats = defaultChats,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredChats = defaultChats.filter((chat) =>
+  const filteredChats = chats.filter((chat) =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div
-      className="flex flex-col h-full border-r border-[#e9edef]"
-      style={{
-        width: 360,
-        backgroundColor: '#ffffff',
-        fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif",
-      }}
+      className="chat-list flex flex-col h-full"
+      style={
+        {
+          '--_cl-bg': 'var(--wa-chat-list-bg, #ffffff)',
+          '--_cl-bg-dark': '#111b21',
+          '--_cl-border': '#e9edef',
+          '--_cl-border-dark': '#313d45',
+          '--_cl-search-bg': 'var(--wa-search-bg, #f0f2f5)',
+          '--_cl-search-bg-dark': '#202c33',
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+        } as React.CSSProperties
+      }
     >
+      <style>{`
+        .chat-list {
+          width: 360px;
+          background-color: var(--wa-chat-list-bg, #ffffff);
+          border-right: 1px solid #e9edef;
+        }
+        @media (prefers-color-scheme: dark) {
+          .chat-list {
+            background-color: #111b21;
+            border-right-color: #313d45;
+          }
+          .chat-list .cl-search-wrap {
+            background-color: #111b21;
+          }
+          .chat-list .cl-search-bar {
+            background-color: #202c33 !important;
+          }
+          .chat-list .cl-search-input {
+            color: #e9edef !important;
+          }
+          .chat-list .cl-search-input::placeholder {
+            color: #8696a0;
+          }
+        }
+        @media (max-width: 768px) {
+          .chat-list {
+            width: 100%;
+            border-right: none;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div
         className="flex items-center justify-between px-4 shrink-0"
-        style={{ height: 56, backgroundColor: '#008069' }}
+        style={{
+          height: 56,
+          backgroundColor: 'var(--wa-header, #008069)',
+        }}
       >
         <span className="text-white text-[18px] font-bold">WAPA</span>
         <div className="flex items-center gap-4">
@@ -70,16 +128,22 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat, selectedChat }) => {
       </div>
 
       {/* Search bar */}
-      <div className="px-2 py-1.5 bg-white shrink-0">
-        <div className="flex items-center bg-[#f0f2f5] rounded-lg px-3 py-1.5">
+      <div className="cl-search-wrap px-2 py-1.5 shrink-0" style={{ backgroundColor: 'var(--wa-chat-list-bg, #ffffff)' }}>
+        <div
+          className="cl-search-bar flex items-center rounded-lg px-3 py-1.5"
+          style={{ backgroundColor: 'var(--wa-search-bg, #f0f2f5)' }}
+        >
           <Search className="w-4 h-4 text-[#8696a0] shrink-0" strokeWidth={1.5} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search or start new chat"
-            className="flex-1 bg-transparent border-none outline-none text-[13.5px] text-[#111b21] placeholder-[#8696a0] ml-3"
-            style={{ fontFamily: "'Segoe UI', Helvetica, Arial, sans-serif" }}
+            className="cl-search-input flex-1 bg-transparent border-none outline-none text-[13.5px] placeholder-[#8696a0] ml-3"
+            style={{
+              fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+              color: 'var(--wa-text-primary, #111b21)',
+            }}
           />
         </div>
       </div>
@@ -95,7 +159,8 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat, selectedChat }) => {
             lastMessage={chat.lastMessage}
             timestamp={chat.timestamp}
             unreadCount={chat.unreadCount}
-            selected={selectedChat === chat.id}
+            isGroup={chat.isGroup}
+            selected={selectedChatId === chat.id}
             onClick={() => onSelectChat?.(chat.id)}
           />
         ))}

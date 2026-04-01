@@ -4,40 +4,54 @@ interface PhoneFrameProps {
   children: React.ReactNode;
 }
 
-// DECISION: 40px border-radius matches the iPhone 14/15 physical bezel curvature.
-// We use pure CSS (border, boxShadow, border-radius) rather than an image or SVG overlay
-// because CSS scales to any DPI, avoids an image asset to manage, and lets us easily
-// adjust dimensions. The 12px border simulates the phone bezel depth.
 const PhoneFrame: React.FC<PhoneFrameProps> = ({ children }) => {
   return (
     <div className="hidden md:flex items-center justify-center">
       <div
-        className="relative bg-black overflow-hidden"
+        className="relative overflow-hidden"
         style={{
-          maxWidth: 375,
-          maxHeight: 812,
           width: 375,
           height: 812,
+          maxWidth: 375,
+          maxHeight: 812,
           borderRadius: 40,
-          border: '12px solid #1a1a1a',
-          boxShadow:
-            '0 0 0 2px #333, 0 20px 60px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.05)',
+          border: '8px solid #1a1a1a',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.3)',
+          background: '#000',
         }}
       >
-        {/* Notch */}
+        {/* Dynamic Island */}
         <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 bg-black z-50"
+          className="absolute z-50"
           style={{
-            width: 120,
+            top: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 100,
             height: 28,
-            borderRadius: '0 0 18px 18px',
+            backgroundColor: '#000',
+            borderRadius: 14,
           }}
         />
 
         {/* Content */}
-        <div className="w-full h-full overflow-hidden bg-white">
+        <div className="w-full h-full overflow-hidden bg-white relative">
           {children}
         </div>
+
+        {/* Home Indicator */}
+        <div
+          className="absolute z-50"
+          style={{
+            bottom: 6,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 120,
+            height: 4,
+            backgroundColor: '#333',
+            borderRadius: 2,
+          }}
+        />
       </div>
     </div>
   );
