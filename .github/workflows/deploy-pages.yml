@@ -5,7 +5,7 @@ on:
     branches: [claude/build-wapa-pm-nWPXO, main]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -14,11 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,33 +36,45 @@ jobs:
       - name: Add 404.html for SPA routing
         run: cp wapa/web/dist/index.html wapa/web/dist/404.html
 
-      - name: Enable GitHub Pages
+      - name: Add .nojekyll
+        run: touch wapa/web/dist/.nojekyll
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./wapa/web/dist
+
+      - name: Enable GitHub Pages from gh-pages branch
         run: |
-          # Enable Pages with GitHub Actions source
-          response=$(curl -s -w "\n%{http_code}" -X POST \
+          echo "Attempting to enable Pages..."
+          # Try creating Pages site
+          result=$(curl -s -o /tmp/pages_response.json -w "%{http_code}" -X POST \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/pages" \
-            -d '{"build_type":"workflow"}')
-          code=$(echo "$response" | tail -1)
-          body=$(echo "$response" | head -n -1)
-          echo "Status: $code"
-          echo "Response: $body"
-          # 201=created, 409=already exists, 422=already enabled — all OK
-          if [ "$code" = "201" ] || [ "$code" = "409" ] || [ "$code" = "422" ]; then
-            echo "Pages enabled successfully"
-          else
-            echo "::warning::Pages API returned $code — may need manual enablement"
+            -d '{"source":{"branch":"gh-pages","path":"/"}}')
+          echo "Create response ($result):"
+          cat /tmp/pages_response.json
+          echo ""
+
+          if [ "$result" = "409" ] || [ "$result" = "422" ]; then
+            echo "Pages exists, updating source..."
+            result2=$(curl -s -o /tmp/pages_update.json -w "%{http_code}" -X PUT \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pages" \
+              -d '{"source":{"branch":"gh-pages","path":"/"}}')
+            echo "Update response ($result2):"
+            cat /tmp/pages_update.json
           fi
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+          echo ""
+          echo "Verifying Pages status..."
+          curl -s \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pages"
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: wapa/web/dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          echo ""
+          echo "Site should be live at: https://mhbealey.github.io/nigeria-pm/"
