@@ -1,19 +1,14 @@
-import { cn } from '../../lib/utils';
-
-export function ProgressBar({ percent, size = 'md' }: { percent: number; size?: 'sm' | 'md' | 'lg' }) {
+export function ProgressBar({ percent, size = 'md', showLabel = true }: { percent: number; size?: 'sm' | 'md' | 'lg'; showLabel?: boolean }) {
   const heights = { sm: 'h-1.5', md: 'h-2.5', lg: 'h-4' };
+  const clampedPercent = Math.min(100, Math.max(0, percent));
+  const color = clampedPercent >= 75 ? 'bg-green-500' : clampedPercent >= 40 ? 'bg-yellow-500' : 'bg-red-500';
+
   return (
-    <div className="w-full">
-      <div className={cn('w-full rounded-full bg-gray-200', heights[size])}>
-        <div
-          className={cn(
-            'rounded-full transition-all duration-500',
-            heights[size],
-            percent >= 75 ? 'bg-green-500' : percent >= 40 ? 'bg-yellow-500' : 'bg-wapa-500',
-          )}
-          style={{ width: `${Math.min(percent, 100)}%` }}
-        />
+    <div className="flex items-center gap-2">
+      <div className={`flex-1 ${heights[size]} bg-gray-200 rounded-full overflow-hidden`}>
+        <div className={`${heights[size]} ${color} rounded-full transition-all duration-500`} style={{ width: `${clampedPercent}%` }} />
       </div>
+      {showLabel && <span className="text-sm font-medium text-gray-600 min-w-[3rem] text-right">{clampedPercent}%</span>}
     </div>
   );
 }
