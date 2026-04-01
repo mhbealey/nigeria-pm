@@ -2,13 +2,12 @@ export type TaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type ProjectStatus = 'active' | 'archived';
 export type SprintStatus = 'planning' | 'active' | 'completed';
-export type TeamRole = 'admin' | 'member';
 
 export interface User {
   id: string;
   name: string;
   phone: string;
-  avatar: string;
+  avatar?: string;
   timezone: string;
 }
 
@@ -16,12 +15,6 @@ export interface Team {
   id: string;
   name: string;
   members: TeamMember[];
-}
-
-export interface TeamMember {
-  user: User;
-  role: TeamRole;
-  joinedAt: string;
 }
 
 export interface Project {
@@ -46,15 +39,15 @@ export interface Sprint {
 export interface Task {
   id: string;
   title: string;
-  description: string | null;
+  description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  projectId: string;
-  sprintId: string | null;
-  assignee: User | null;
+  assignee?: User;
   creator: User;
-  dueDate: string | null;
-  completedAt: string | null;
+  projectId: string;
+  sprintId?: string;
+  dueDate?: string;
+  completedAt?: string;
   createdAt: string;
   notes: Note[];
 }
@@ -66,9 +59,24 @@ export interface Note {
   createdAt: string;
 }
 
+export interface Message {
+  id: string;
+  content: string;
+  direction: 'inbound' | 'outbound';
+  intent?: string;
+  timestamp: string;
+  user: User;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
   sender: 'user' | 'wapa';
   timestamp: string;
+}
+
+export interface TeamMember {
+  user: User;
+  role: 'admin' | 'member';
+  joinedAt: string;
 }

@@ -1,78 +1,68 @@
-import type { User, Team, Project, Sprint, Task, ChatMessage } from '../types';
+import type { User, Team, Project, Sprint, Task, Message } from '../types';
 
 export const users: User[] = [
-  { id: 'u1', name: 'Ade Johnson', phone: '+2348012345678', avatar: '🧑🏾‍💻', timezone: 'Africa/Lagos' },
-  { id: 'u2', name: 'Sarah Okafor', phone: '+2348023456789', avatar: '👩🏽‍🎨', timezone: 'Africa/Lagos' },
-  { id: 'u3', name: 'Mike Chen', phone: '+6591234567', avatar: '👨🏻‍💼', timezone: 'Asia/Singapore' },
-  { id: 'u4', name: 'Fatima Al-Hassan', phone: '+971501234567', avatar: '👩🏽‍🔬', timezone: 'Asia/Dubai' },
-  { id: 'u5', name: 'David Kim', phone: '+821012345678', avatar: '👨🏻‍🎤', timezone: 'Asia/Seoul' },
+  { id: 'u1', name: 'Ade Johnson', phone: '+2348012345678', timezone: 'Africa/Lagos' },
+  { id: 'u2', name: 'Sarah Okafor', phone: '+2348023456789', timezone: 'Africa/Lagos' },
+  { id: 'u3', name: 'Mike Chen', phone: '+2348034567890', timezone: 'Asia/Singapore' },
+  { id: 'u4', name: 'Fatima Bello', phone: '+2348045678901', timezone: 'Africa/Lagos' },
+  { id: 'u5', name: 'James Wilson', phone: '+447911123456', timezone: 'Europe/London' },
 ];
-
-export const currentUser = users[0];
 
 export const team: Team = {
   id: 't1',
   name: 'WAPA Dev Team',
-  members: [
-    { user: users[0], role: 'admin', joinedAt: '2024-01-15' },
-    { user: users[1], role: 'member', joinedAt: '2024-01-16' },
-    { user: users[2], role: 'member', joinedAt: '2024-01-20' },
-    { user: users[3], role: 'member', joinedAt: '2024-02-01' },
-    { user: users[4], role: 'member', joinedAt: '2024-02-10' },
-  ],
+  members: users,
 };
 
 export const projects: Project[] = [
-  { id: 'p1', name: 'Website Redesign', status: 'active', teamId: 't1', taskCount: 12, completedCount: 5, createdAt: '2024-01-20' },
-  { id: 'p2', name: 'Mobile App v2', status: 'active', teamId: 't1', taskCount: 8, completedCount: 2, createdAt: '2024-02-01' },
-  { id: 'p3', name: 'API Integration', status: 'active', teamId: 't1', taskCount: 6, completedCount: 6, createdAt: '2024-01-10' },
-  { id: 'p4', name: 'Brand Guidelines', status: 'archived', teamId: 't1', taskCount: 4, completedCount: 4, createdAt: '2023-12-01' },
+  { id: 'p1', name: 'Website Redesign', status: 'active', teamId: 't1', taskCount: 12, completedCount: 5, createdAt: '2024-03-01' },
+  { id: 'p2', name: 'Mobile App MVP', status: 'active', teamId: 't1', taskCount: 8, completedCount: 2, createdAt: '2024-03-10' },
+  { id: 'p3', name: 'API Integration', status: 'archived', teamId: 't1', taskCount: 6, completedCount: 6, createdAt: '2024-02-15' },
 ];
 
 export const sprints: Sprint[] = [
-  { id: 's1', name: 'Sprint 7', projectId: 'p1', startDate: '2024-03-18', endDate: '2024-04-01', status: 'active' },
-  { id: 's2', name: 'Sprint 3', projectId: 'p2', startDate: '2024-03-25', endDate: '2024-04-08', status: 'active' },
-  { id: 's3', name: 'Sprint 6', projectId: 'p1', startDate: '2024-03-04', endDate: '2024-03-18', status: 'completed' },
+  { id: 's1', name: 'Sprint 4', projectId: 'p1', startDate: '2024-03-25', endDate: '2024-04-07', status: 'active' },
+  { id: 's2', name: 'Sprint 1', projectId: 'p2', startDate: '2024-03-18', endDate: '2024-04-01', status: 'active' },
 ];
 
 export const tasks: Task[] = [
-  // Website Redesign - Sprint 7
-  { id: 'tk1', title: 'Design new landing page', description: 'Create a modern, conversion-focused landing page', status: 'done', priority: 'high', projectId: 'p1', sprintId: 's1', assignee: users[1], creator: users[0], dueDate: '2024-03-22', completedAt: '2024-03-21', createdAt: '2024-03-18', notes: [{ id: 'n1', content: 'Client approved the wireframe', author: users[1], createdAt: '2024-03-20' }] },
-  { id: 'tk2', title: 'Implement auth flow', description: 'OAuth2 with Google and GitHub', status: 'in_progress', priority: 'urgent', projectId: 'p1', sprintId: 's1', assignee: users[0], creator: users[0], dueDate: '2024-03-28', completedAt: null, createdAt: '2024-03-18', notes: [] },
-  { id: 'tk3', title: 'Set up CI/CD pipeline', description: 'GitHub Actions with staging and production', status: 'done', priority: 'high', projectId: 'p1', sprintId: 's1', assignee: users[2], creator: users[0], dueDate: '2024-03-25', completedAt: '2024-03-24', createdAt: '2024-03-18', notes: [] },
-  { id: 'tk4', title: 'Fix payment integration bug', description: 'Stripe webhook not processing correctly', status: 'blocked', priority: 'urgent', projectId: 'p1', sprintId: 's1', assignee: users[2], creator: users[1], dueDate: '2024-03-26', completedAt: null, createdAt: '2024-03-19', notes: [{ id: 'n2', content: 'Waiting on Stripe support response', author: users[2], createdAt: '2024-03-23' }] },
-  { id: 'tk5', title: 'Write API documentation', description: 'OpenAPI spec for all endpoints', status: 'todo', priority: 'medium', projectId: 'p1', sprintId: 's1', assignee: users[0], creator: users[0], dueDate: '2024-03-29', completedAt: null, createdAt: '2024-03-18', notes: [] },
-  { id: 'tk6', title: 'Design onboarding flow', description: 'First-time user experience', status: 'todo', priority: 'medium', projectId: 'p1', sprintId: 's1', assignee: users[1], creator: users[0], dueDate: '2024-03-30', completedAt: null, createdAt: '2024-03-19', notes: [] },
-  { id: 'tk7', title: 'Performance audit', description: 'Lighthouse score > 90', status: 'todo', priority: 'low', projectId: 'p1', sprintId: 's1', assignee: users[3], creator: users[0], dueDate: '2024-04-01', completedAt: null, createdAt: '2024-03-20', notes: [] },
-  { id: 'tk8', title: 'User feedback survey', description: 'Create and send beta user survey', status: 'in_progress', priority: 'medium', projectId: 'p1', sprintId: 's1', assignee: users[3], creator: users[1], dueDate: '2024-03-27', completedAt: null, createdAt: '2024-03-19', notes: [{ id: 'n3', content: 'Survey draft ready for review', author: users[3], createdAt: '2024-03-25' }] },
-  { id: 'tk9', title: 'Mobile responsive fixes', description: 'Fix layout issues on iOS Safari', status: 'done', priority: 'high', projectId: 'p1', sprintId: 's1', assignee: users[4], creator: users[1], dueDate: '2024-03-24', completedAt: '2024-03-23', createdAt: '2024-03-18', notes: [] },
-  { id: 'tk10', title: 'Database migration script', description: 'Migrate from v1 to v2 schema', status: 'done', priority: 'high', projectId: 'p1', sprintId: 's1', assignee: users[2], creator: users[0], dueDate: '2024-03-22', completedAt: '2024-03-21', createdAt: '2024-03-18', notes: [] },
-  { id: 'tk11', title: 'Add dark mode support', description: 'System preference detection + toggle', status: 'done', priority: 'low', projectId: 'p1', sprintId: 's1', assignee: users[4], creator: users[4], dueDate: '2024-03-25', completedAt: '2024-03-24', createdAt: '2024-03-19', notes: [] },
-  { id: 'tk12', title: 'Security headers audit', description: 'CSP, HSTS, X-Frame-Options', status: 'in_progress', priority: 'high', projectId: 'p1', sprintId: 's1', assignee: users[0], creator: users[2], dueDate: '2024-03-29', completedAt: null, createdAt: '2024-03-20', notes: [] },
-  // Mobile App v2 - Sprint 3
-  { id: 'tk13', title: 'Push notification system', description: 'FCM integration for Android + iOS', status: 'in_progress', priority: 'high', projectId: 'p2', sprintId: 's2', assignee: users[2], creator: users[0], dueDate: '2024-04-02', completedAt: null, createdAt: '2024-03-25', notes: [] },
-  { id: 'tk14', title: 'Offline mode', description: 'SQLite local cache for offline access', status: 'todo', priority: 'high', projectId: 'p2', sprintId: 's2', assignee: users[4], creator: users[0], dueDate: '2024-04-05', completedAt: null, createdAt: '2024-03-25', notes: [] },
-  { id: 'tk15', title: 'Biometric auth', description: 'FaceID and fingerprint login', status: 'done', priority: 'medium', projectId: 'p2', sprintId: 's2', assignee: users[0], creator: users[0], dueDate: '2024-03-29', completedAt: '2024-03-28', createdAt: '2024-03-25', notes: [] },
-  { id: 'tk16', title: 'App store screenshots', description: 'Design screenshots for iOS and Android', status: 'done', priority: 'medium', projectId: 'p2', sprintId: 's2', assignee: users[1], creator: users[1], dueDate: '2024-03-30', completedAt: '2024-03-29', createdAt: '2024-03-25', notes: [] },
-  { id: 'tk17', title: 'Crash reporting setup', description: 'Sentry for mobile with source maps', status: 'todo', priority: 'medium', projectId: 'p2', sprintId: 's2', assignee: users[2], creator: users[0], dueDate: '2024-04-04', completedAt: null, createdAt: '2024-03-26', notes: [] },
-  { id: 'tk18', title: 'Deep linking', description: 'Universal links for iOS, App Links for Android', status: 'todo', priority: 'low', projectId: 'p2', sprintId: 's2', assignee: users[3], creator: users[0], dueDate: '2024-04-07', completedAt: null, createdAt: '2024-03-26', notes: [] },
-  { id: 'tk19', title: 'Accessibility audit', description: 'WCAG 2.1 AA compliance', status: 'blocked', priority: 'medium', projectId: 'p2', sprintId: 's2', assignee: users[3], creator: users[1], dueDate: '2024-04-03', completedAt: null, createdAt: '2024-03-27', notes: [{ id: 'n4', content: 'Need VoiceOver test device', author: users[3], createdAt: '2024-03-29' }] },
-  { id: 'tk20', title: 'Beta release prep', description: 'TestFlight + Google Play Internal Testing', status: 'todo', priority: 'high', projectId: 'p2', sprintId: 's2', assignee: users[0], creator: users[0], dueDate: '2024-04-08', completedAt: null, createdAt: '2024-03-27', notes: [] },
+  // Website Redesign tasks
+  { id: 'tk1', title: 'Design landing page hero section', status: 'done', priority: 'high', assignee: users[0], creator: users[0], projectId: 'p1', sprintId: 's1', dueDate: '2024-03-28', completedAt: '2024-03-27', createdAt: '2024-03-25', notes: [{ id: 'n1', content: 'Client approved the blue gradient', author: users[0], createdAt: '2024-03-27' }] },
+  { id: 'tk2', title: 'Implement responsive navigation', status: 'done', priority: 'high', assignee: users[1], creator: users[0], projectId: 'p1', sprintId: 's1', dueDate: '2024-03-29', completedAt: '2024-03-29', createdAt: '2024-03-25', notes: [] },
+  { id: 'tk3', title: 'Build contact form with validation', status: 'in_progress', priority: 'medium', assignee: users[2], creator: users[0], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-02', createdAt: '2024-03-26', notes: [{ id: 'n2', content: 'Using react-hook-form + zod', author: users[2], createdAt: '2024-03-28' }] },
+  { id: 'tk4', title: 'Set up analytics tracking', status: 'todo', priority: 'low', assignee: users[3], creator: users[1], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-05', createdAt: '2024-03-26', notes: [] },
+  { id: 'tk5', title: 'Optimize images and lazy loading', status: 'todo', priority: 'medium', assignee: users[0], creator: users[0], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-04', createdAt: '2024-03-27', notes: [] },
+  { id: 'tk6', title: 'Fix payment gateway integration', status: 'blocked', priority: 'urgent', assignee: users[1], creator: users[2], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-01', createdAt: '2024-03-25', notes: [{ id: 'n3', content: 'Waiting for Stripe API keys from client', author: users[1], createdAt: '2024-03-30' }] },
+  { id: 'tk7', title: 'Write E2E tests for checkout', status: 'todo', priority: 'high', assignee: users[2], creator: users[0], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-06', createdAt: '2024-03-28', notes: [] },
+  { id: 'tk8', title: 'Deploy staging environment', status: 'done', priority: 'high', assignee: users[4], creator: users[0], projectId: 'p1', sprintId: 's1', completedAt: '2024-03-26', dueDate: '2024-03-27', createdAt: '2024-03-25', notes: [] },
+  { id: 'tk9', title: 'SEO meta tags and sitemap', status: 'in_progress', priority: 'medium', assignee: users[3], creator: users[1], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-03', createdAt: '2024-03-27', notes: [] },
+  { id: 'tk10', title: 'Accessibility audit (WCAG 2.1)', status: 'todo', priority: 'medium', assignee: users[4], creator: users[1], projectId: 'p1', sprintId: 's1', dueDate: '2024-04-07', createdAt: '2024-03-28', notes: [] },
+  { id: 'tk11', title: 'Dark mode support', status: 'done', priority: 'low', assignee: users[0], creator: users[0], projectId: 'p1', sprintId: 's1', completedAt: '2024-03-30', dueDate: '2024-03-30', createdAt: '2024-03-26', notes: [] },
+  { id: 'tk12', title: 'Performance budget setup', status: 'done', priority: 'medium', assignee: users[4], creator: users[2], projectId: 'p1', sprintId: 's1', completedAt: '2024-03-28', dueDate: '2024-03-29', createdAt: '2024-03-25', notes: [] },
+  // Mobile App tasks
+  { id: 'tk13', title: 'Design app wireframes', status: 'done', priority: 'high', assignee: users[0], creator: users[0], projectId: 'p2', sprintId: 's2', completedAt: '2024-03-20', dueDate: '2024-03-22', createdAt: '2024-03-18', notes: [] },
+  { id: 'tk14', title: 'Set up React Native project', status: 'done', priority: 'high', assignee: users[2], creator: users[0], projectId: 'p2', sprintId: 's2', completedAt: '2024-03-19', dueDate: '2024-03-20', createdAt: '2024-03-18', notes: [] },
+  { id: 'tk15', title: 'Build auth screens', status: 'in_progress', priority: 'high', assignee: users[1], creator: users[0], projectId: 'p2', sprintId: 's2', dueDate: '2024-03-28', createdAt: '2024-03-20', notes: [] },
+  { id: 'tk16', title: 'Implement push notifications', status: 'todo', priority: 'medium', assignee: users[2], creator: users[1], projectId: 'p2', sprintId: 's2', dueDate: '2024-03-30', createdAt: '2024-03-22', notes: [] },
+  { id: 'tk17', title: 'Build task list view', status: 'todo', priority: 'high', assignee: users[0], creator: users[0], projectId: 'p2', sprintId: 's2', dueDate: '2024-03-29', createdAt: '2024-03-22', notes: [] },
+  { id: 'tk18', title: 'Offline mode with sync', status: 'blocked', priority: 'medium', assignee: users[4], creator: users[2], projectId: 'p2', sprintId: 's2', dueDate: '2024-04-01', createdAt: '2024-03-23', notes: [{ id: 'n4', content: 'Need to decide on sync strategy first', author: users[4], createdAt: '2024-03-25' }] },
+  { id: 'tk19', title: 'App store listing prep', status: 'todo', priority: 'low', assignee: users[3], creator: users[0], projectId: 'p2', sprintId: 's2', dueDate: '2024-04-01', createdAt: '2024-03-24', notes: [] },
+  { id: 'tk20', title: 'Beta testing setup', status: 'todo', priority: 'medium', assignee: users[4], creator: users[1], projectId: 'p2', sprintId: 's2', dueDate: '2024-03-31', createdAt: '2024-03-24', notes: [] },
 ];
 
-export const chatHistory: ChatMessage[] = [
-  { id: 'c1', content: 'hey wapa', sender: 'user', timestamp: '2024-03-25T09:00:00Z' },
-  { id: 'c2', content: 'Hey Ade! 👋 What can I help you with today?', sender: 'wapa', timestamp: '2024-03-25T09:00:01Z' },
-  { id: 'c3', content: 'add task: design new dashboard widgets', sender: 'user', timestamp: '2024-03-25T09:01:00Z' },
-  { id: 'c4', content: '✅ Task created — *Design new dashboard widgets* — assigned to you, due April 1', sender: 'wapa', timestamp: '2024-03-25T09:01:01Z' },
-  { id: 'c5', content: "how's the sprint?", sender: 'user', timestamp: '2024-03-25T09:02:00Z' },
-  { id: 'c6', content: "Sprint 7 is looking good! 🔥\n\n████████░░ 67%\n\n✅ Done: 5 | 🔄 In progress: 3 | ⬜ Todo: 3 | 🚫 Blocked: 1\n\n4 days left — you've got this!", sender: 'wapa', timestamp: '2024-03-25T09:02:01Z' },
-  { id: 'c7', content: 'assign auth flow to sarah', sender: 'user', timestamp: '2024-03-25T09:03:00Z' },
-  { id: 'c8', content: "Done — Sarah's on it 👍", sender: 'wapa', timestamp: '2024-03-25T09:03:01Z' },
-  { id: 'c9', content: "what's on my plate?", sender: 'user', timestamp: '2024-03-25T09:04:00Z' },
-  { id: 'c10', content: "Here's what's on your plate:\n\n1. 🔄 *Implement auth flow* — due Mar 28 🔴\n2. ⬜ *Write API documentation* — due Mar 29\n3. 🔄 *Security headers audit* — due Mar 29 🔴\n\n3 tasks open — keep it up! 💪", sender: 'wapa', timestamp: '2024-03-25T09:04:01Z' },
-  { id: 'c11', content: 'payment bug is blocked by stripe', sender: 'user', timestamp: '2024-03-25T09:05:00Z' },
-  { id: 'c12', content: "🚫 Marked *Fix payment integration bug* as blocked — I'll let the team know", sender: 'wapa', timestamp: '2024-03-25T09:05:01Z' },
+export const recentMessages: Message[] = [
+  { id: 'm1', content: 'add task: design landing page hero section', direction: 'inbound', intent: 'create_task', timestamp: '2024-03-25T09:15:00Z', user: users[0] },
+  { id: 'm2', content: '✅ Task created — *Design landing page hero section* — assigned to you, due Thursday', direction: 'outbound', timestamp: '2024-03-25T09:15:01Z', user: users[0] },
+  { id: 'm3', content: 'assign payment gateway to @sarah', direction: 'inbound', intent: 'assign_task', timestamp: '2024-03-25T10:30:00Z', user: users[0] },
+  { id: 'm4', content: "Done — Sarah's on it 👍", direction: 'outbound', timestamp: '2024-03-25T10:30:01Z', user: users[0] },
+  { id: 'm5', content: "how's the sprint?", direction: 'inbound', intent: 'sprint_status', timestamp: '2024-03-30T14:00:00Z', user: users[1] },
+  { id: 'm6', content: "Sprint 4 progress:\n█████░░░░░ 42%\n\n✅ Done: 5 | 🔄 In progress: 2 | ⬜ Todo: 4 | 🚫 Blocked: 1\n\n8 days left — looking good!", direction: 'outbound', timestamp: '2024-03-30T14:00:01Z', user: users[1] },
+  { id: 'm7', content: 'payment gateway is blocked by stripe keys', direction: 'inbound', intent: 'block_task', timestamp: '2024-03-30T15:20:00Z', user: users[1] },
+  { id: 'm8', content: "🚫 Marked as blocked — I'll ping the team", direction: 'outbound', timestamp: '2024-03-30T15:20:01Z', user: users[1] },
+  { id: 'm9', content: 'done with dark mode', direction: 'inbound', intent: 'complete_task', timestamp: '2024-03-30T16:45:00Z', user: users[0] },
+  { id: 'm10', content: 'Nice, marking it complete 🎉 6 tasks left this sprint', direction: 'outbound', timestamp: '2024-03-30T16:45:01Z', user: users[0] },
+  { id: 'm11', content: "what's on my plate?", direction: 'inbound', intent: 'list_tasks', timestamp: '2024-03-31T09:00:00Z', user: users[2] },
+  { id: 'm12', content: "Here's what you've got:\n\n1. 🔄 *Build contact form with validation* — due Apr 2\n2. ⬜ *Write E2E tests for checkout* — due Apr 6", direction: 'outbound', timestamp: '2024-03-31T09:00:01Z', user: users[2] },
 ];
 
 // Helper functions
@@ -95,6 +85,5 @@ export function getSprintProgress(sprintId: string) {
   const inProgress = sprintTasks.filter(t => t.status === 'in_progress').length;
   const blocked = sprintTasks.filter(t => t.status === 'blocked').length;
   const todo = sprintTasks.filter(t => t.status === 'todo').length;
-  const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-  return { total, done, inProgress, blocked, todo, percent };
+  return { total, done, inProgress, blocked, todo, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
 }
