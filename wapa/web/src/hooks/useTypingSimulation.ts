@@ -13,7 +13,7 @@ interface UseTypingSimulationReturn {
  */
 export function useTypingSimulation(): UseTypingSimulationReturn {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setTyping = useChatStore((s) => s.setTyping);
+  const setTyping = useChatStore((s: { setTyping: (typing: boolean) => void }) => s.setTyping);
 
   const cancelTyping = useCallback(() => {
     if (timerRef.current !== null) {
