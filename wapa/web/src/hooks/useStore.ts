@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { tasks as initialTasks, chatHistory as initialChat } from '../lib/mock-data';
-import type { Task, TaskStatus, ChatMessage } from '../types';
+import type { Task, TaskStatus } from '../types';
 
 // Simple global state via module-level variables + React state
-let globalTasks = [...initialTasks];
+let globalTasks: Task[] = [...initialTasks];
 let globalChat = [...initialChat];
 let listeners: Array<() => void> = [];
 
@@ -23,7 +23,7 @@ export function useStore() {
   const updateTaskStatus = useCallback((taskId: string, status: TaskStatus) => {
     globalTasks = globalTasks.map(t =>
       t.id === taskId
-        ? { ...t, status, completedAt: status === 'done' ? new Date().toISOString() : null }
+        ? { ...t, status, completedAt: status === 'done' ? new Date().toISOString() : undefined }
         : t
     );
     notify();

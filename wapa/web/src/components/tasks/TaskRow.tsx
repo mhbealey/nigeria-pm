@@ -4,9 +4,9 @@ import { PriorityIndicator } from '../common/PriorityIndicator';
 import { StatusBadge } from '../common/StatusBadge';
 import { Avatar } from '../common/Avatar';
 
-function isOverdue(dueDate: string | null): boolean {
+function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
-  return new Date(dueDate) < new Date() && true;
+  return new Date(dueDate) < new Date();
 }
 
 export function TaskRow({ task, onClick }: { task: Task; onClick?: () => void }) {

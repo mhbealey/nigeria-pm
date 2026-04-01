@@ -11,8 +11,23 @@ export const users: User[] = [
 export const team: Team = {
   id: 't1',
   name: 'WAPA Dev Team',
-  members: users,
+  members: [
+    { user: users[0], role: 'admin', joinedAt: '2024-01-15' },
+    { user: users[1], role: 'member', joinedAt: '2024-01-16' },
+    { user: users[2], role: 'member', joinedAt: '2024-01-20' },
+    { user: users[3], role: 'member', joinedAt: '2024-02-01' },
+    { user: users[4], role: 'member', joinedAt: '2024-02-10' },
+  ],
 };
+
+export const chatHistory = [
+  { id: 'c1', content: 'hey wapa', sender: 'user' as const, timestamp: '2024-03-25T09:00:00Z' },
+  { id: 'c2', content: 'Hey Ade! 👋 What can I help you with today?', sender: 'wapa' as const, timestamp: '2024-03-25T09:00:01Z' },
+  { id: 'c3', content: 'add task: design new dashboard widgets', sender: 'user' as const, timestamp: '2024-03-25T09:01:00Z' },
+  { id: 'c4', content: '✅ Task created — *Design new dashboard widgets* — assigned to you, due April 1', sender: 'wapa' as const, timestamp: '2024-03-25T09:01:01Z' },
+  { id: 'c5', content: "how's the sprint?", sender: 'user' as const, timestamp: '2024-03-25T09:02:00Z' },
+  { id: 'c6', content: "Sprint 4 is looking good! 🔥\n\n████████░░ 67%\n\n✅ Done: 5 | 🔄 In progress: 2 | ⬜ Todo: 4 | 🚫 Blocked: 1\n\n4 days left — you've got this!", sender: 'wapa' as const, timestamp: '2024-03-25T09:02:01Z' },
+];
 
 export const projects: Project[] = [
   { id: 'p1', name: 'Website Redesign', status: 'active', teamId: 't1', taskCount: 12, completedCount: 5, createdAt: '2024-03-01' },
