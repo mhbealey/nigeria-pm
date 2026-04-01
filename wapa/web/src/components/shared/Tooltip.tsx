@@ -34,7 +34,7 @@ const originMap: Record<TooltipPosition, string> = {
 
 export function Tooltip({ content, position = 'top', delay = 200, children, className = '' }: TooltipProps) {
   const [show, setShow] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleEnter = () => {
     timer.current = setTimeout(() => setShow(true), delay);
