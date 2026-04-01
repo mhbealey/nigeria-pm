@@ -1,0 +1,20 @@
+@import './tokens.css';
+@import './typography.css';
+@import './animations.css';
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-body); color: var(--text-primary); background: var(--surface-secondary); line-height: 1.5; }
+
+::selection { background: var(--wapa-green-200); color: var(--wapa-green-900); }
+:focus-visible { outline: 2px solid var(--wapa-green-500); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--slate-300); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--slate-400); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
