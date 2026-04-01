@@ -1,0 +1,41 @@
+name: Deploy Production
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: wapa
+        run: npm ci
+
+      - name: Build
+        working-directory: wapa
+        run: npm run build
+
+      - name: Run migrations
+        working-directory: wapa
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: wapa-production
+
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f ${{ secrets.PROD_URL }}/health || exit 1
