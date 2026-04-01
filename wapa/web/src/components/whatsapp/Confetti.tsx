@@ -48,10 +48,8 @@ const Confetti: React.FC<ConfettiProps> = ({ show }) => {
     }
   }, [show]);
 
-  if (!visible) return null;
-
-  // Generate unique keyframes per particle
-  const keyframes = particles
+  // Memoize keyframes so they're only generated once per particle set
+  const keyframes = useMemo(() => particles
     .map(
       (p) => `
     @keyframes confetti-${p.id} {
@@ -70,7 +68,9 @@ const Confetti: React.FC<ConfettiProps> = ({ show }) => {
     }
   `
     )
-    .join('\n');
+    .join('\n'), [particles]);
+
+  if (!visible) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">

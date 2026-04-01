@@ -46,7 +46,7 @@ const ReadReceipt: React.FC<ReadReceiptProps> = ({ status, animate = false }) =>
         viewBox="0 0 16 11"
         fill="none"
         className="inline-block ml-1"
-        style={{ transition: 'color 200ms ease' }}
+        style={{ transition: 'fill 200ms ease' }}
       >
         <path
           d="M11.071 0.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L5.45 7.134 3.839 5.116a.46.46 0 0 0-.357-.178.414.414 0 0 0-.356.153c-.178.204-.178.509 0 .712l1.916 2.446a.552.552 0 0 0 .357.178h.05a.49.49 0 0 0 .382-.178l5.24-6.884c.153-.204.128-.458-.05-.611z"
@@ -63,7 +63,7 @@ const ReadReceipt: React.FC<ReadReceiptProps> = ({ status, animate = false }) =>
       viewBox="0 0 16 11"
       fill="none"
       className="inline-block ml-1"
-      style={{ transition: 'color 200ms ease' }}
+      style={{ transition: 'fill 200ms ease' }}
     >
       <path
         d="M11.071 0.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178L5.45 7.134 3.839 5.116a.46.46 0 0 0-.357-.178.414.414 0 0 0-.356.153c-.178.204-.178.509 0 .712l1.916 2.446a.552.552 0 0 0 .357.178h.05a.49.49 0 0 0 .382-.178l5.24-6.884c.153-.204.128-.458-.05-.611z"

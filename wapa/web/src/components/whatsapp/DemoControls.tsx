@@ -5,11 +5,6 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Moon,
-  Sun,
-  Volume2,
-  VolumeX,
-  Smartphone,
   X,
   ChevronDown,
 } from 'lucide-react';
@@ -173,21 +168,18 @@ export function DemoControls({
                   <div className="space-y-3">
                     <ToggleRow
                       emoji="🌙"
-                      icon={darkMode ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
                       label="Dark mode"
                       checked={darkMode}
                       onChange={onToggleDarkMode}
                     />
                     <ToggleRow
                       emoji="🔊"
-                      icon={soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                       label="Sounds"
                       checked={soundEnabled}
                       onChange={onToggleSound}
                     />
                     <ToggleRow
                       emoji="📱"
-                      icon={<Smartphone className="w-3.5 h-3.5" />}
                       label="Phone frame"
                       checked={phoneFrame}
                       onChange={onTogglePhoneFrame}
@@ -230,7 +222,6 @@ function ToggleRow({
   desktopOnly,
 }: {
   emoji: string;
-  icon: React.ReactNode;
   label: string;
   checked: boolean;
   onChange: () => void;

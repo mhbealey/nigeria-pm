@@ -329,7 +329,6 @@ export default function WhatsAppDemo() {
 
   const resetAll = useCallback(() => {
     resetDemo();
-    useSimulationStore.getState().resetState();
   }, [resetDemo]);
 
   const togglePlayPause = useCallback(() => {

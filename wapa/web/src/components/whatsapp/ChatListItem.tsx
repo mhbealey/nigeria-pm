@@ -57,29 +57,27 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         .chat-list-item .cli-time[data-unread='true'] {
           color: #00a884;
         }
-        @media (prefers-color-scheme: dark) {
-          .chat-list-item:hover {
-            background-color: #202c33;
-          }
-          .chat-list-item[data-selected='true'],
-          .chat-list-item[data-selected='true']:hover {
-            background-color: #2a3942;
-          }
-          .chat-list-item .cli-divider {
-            border-bottom-color: #313d45;
-          }
-          .chat-list-item .cli-name {
-            color: #e9edef;
-          }
-          .chat-list-item .cli-message {
-            color: #8696a0;
-          }
-          .chat-list-item .cli-time {
-            color: #8696a0;
-          }
-          .chat-list-item .cli-time[data-unread='true'] {
-            color: #00a884;
-          }
+        [data-theme="dark"] .chat-list-item:hover {
+          background-color: #202c33;
+        }
+        [data-theme="dark"] .chat-list-item[data-selected='true'],
+        [data-theme="dark"] .chat-list-item[data-selected='true']:hover {
+          background-color: #2a3942;
+        }
+        [data-theme="dark"] .chat-list-item .cli-divider {
+          border-bottom-color: #313d45;
+        }
+        [data-theme="dark"] .chat-list-item .cli-name {
+          color: #e9edef;
+        }
+        [data-theme="dark"] .chat-list-item .cli-message {
+          color: #8696a0;
+        }
+        [data-theme="dark"] .chat-list-item .cli-time {
+          color: #8696a0;
+        }
+        [data-theme="dark"] .chat-list-item .cli-time[data-unread='true'] {
+          color: #00a884;
         }
       `}</style>
       <button

@@ -67,8 +67,10 @@ function parseDate(text: string): string {
   }
   const parsed = new Date(text);
   if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  now.setDate(now.getDate() + 5);
-  return now.toISOString().slice(0, 10);
+  // Fallback: default to 5 days from now
+  const fallback = new Date();
+  fallback.setDate(fallback.getDate() + 5);
+  return fallback.toISOString().slice(0, 10);
 }
 
 const patterns: Pattern[] = [

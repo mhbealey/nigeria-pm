@@ -9,18 +9,11 @@ body {
   color: var(--text-primary);
   background: var(--surface-secondary);
   line-height: 1.5;
-  transition: background-color 200ms ease, color 200ms ease;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 
 ::selection { background: var(--wapa-green-200); color: var(--wapa-green-900); }
 :focus-visible { outline: 2px solid var(--wapa-green-500); outline-offset: 2px; border-radius: var(--radius-sm); }
-
-/* Smooth dark mode transitions */
-*,
-*::before,
-*::after {
-  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
-}
 
 /* WhatsApp chat doodle background - light mode */
 .wa-chat-bg {

@@ -17,43 +17,10 @@ interface ChatListProps {
   }>;
 }
 
-const defaultChats: ChatListProps['chats'] = [
-  {
-    id: 'wapa-dm',
-    name: 'WAPA',
-    avatarText: 'W',
-    avatarColor: '#25d366',
-    lastMessage: "Here's your plate today...",
-    timestamp: '9:41 AM',
-    unreadCount: 2,
-    isGroup: false,
-  },
-  {
-    id: 'website-redesign',
-    name: 'Website Redesign',
-    avatarText: 'WR',
-    avatarColor: '#00a884',
-    lastMessage: 'WAPA: 🚫 Build the API is...',
-    timestamp: '9:30 AM',
-    unreadCount: 0,
-    isGroup: true,
-  },
-  {
-    id: 'marketing-sprint',
-    name: 'Marketing Sprint',
-    avatarText: 'MS',
-    avatarColor: '#128c7e',
-    lastMessage: 'Sam: can we push the launch?',
-    timestamp: 'Yesterday',
-    unreadCount: 0,
-    isGroup: true,
-  },
-];
-
-const ChatList: React.FC<Partial<ChatListProps>> = ({
+const ChatList: React.FC<ChatListProps> = ({
   onSelectChat,
   selectedChatId,
-  chats = defaultChats,
+  chats,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -82,23 +49,21 @@ const ChatList: React.FC<Partial<ChatListProps>> = ({
           background-color: var(--wa-chat-list-bg, #ffffff);
           border-right: 1px solid #e9edef;
         }
-        @media (prefers-color-scheme: dark) {
-          .chat-list {
-            background-color: #111b21;
-            border-right-color: #313d45;
-          }
-          .chat-list .cl-search-wrap {
-            background-color: #111b21;
-          }
-          .chat-list .cl-search-bar {
-            background-color: #202c33 !important;
-          }
-          .chat-list .cl-search-input {
-            color: #e9edef !important;
-          }
-          .chat-list .cl-search-input::placeholder {
-            color: #8696a0;
-          }
+        [data-theme="dark"] .chat-list {
+          background-color: #111b21;
+          border-right-color: #313d45;
+        }
+        [data-theme="dark"] .chat-list .cl-search-wrap {
+          background-color: #111b21;
+        }
+        [data-theme="dark"] .chat-list .cl-search-bar {
+          background-color: #202c33 !important;
+        }
+        [data-theme="dark"] .chat-list .cl-search-input {
+          color: #e9edef !important;
+        }
+        [data-theme="dark"] .chat-list .cl-search-input::placeholder {
+          color: #8696a0;
         }
         @media (max-width: 768px) {
           .chat-list {
