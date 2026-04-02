@@ -155,6 +155,19 @@ export default function WhatsAppDemo() {
     scrollToBottom();
   }, [activeChat.messages.length, isTyping, scrollToBottom]);
 
+  // Auto-play standup scenario on first load
+  const hasAutoPlayed = useRef(false);
+  useEffect(() => {
+    if (!hasAutoPlayed.current) {
+      hasAutoPlayed.current = true;
+      // Small delay to let the UI render first
+      const timer = setTimeout(() => {
+        playScenario('standup');
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Sound sync
   useEffect(() => {
     setSoundEnabled(soundEnabled);

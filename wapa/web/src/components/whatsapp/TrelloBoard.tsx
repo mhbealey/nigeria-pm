@@ -460,9 +460,11 @@ export default function TrelloBoard({
         }}
       >
         <LayoutGroup>
-          {columns.map((col) => (
-            <Column key={col.id} column={col} recentCardIds={recentCardIds} />
-          ))}
+          {columns
+            .filter((col) => col.status !== 'blocked' || col.cards.length > 0)
+            .map((col) => (
+              <Column key={col.id} column={col} recentCardIds={recentCardIds} />
+            ))}
         </LayoutGroup>
       </div>
 

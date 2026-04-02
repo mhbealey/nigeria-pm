@@ -14,6 +14,16 @@ interface MessageBubbleProps {
   isLastInGroup?: boolean;
 }
 
+const SENDER_COLORS: Record<string, string> = {
+  WAPA: '#00a884',
+  Maya: '#ff6b6b',
+  Jordan: '#4ecdc4',
+  Sam: '#ffd93d',
+  Riley: '#6c5ce7',
+  Alex: '#25d366',
+  'Alex Okonkwo': '#25d366',
+};
+
 // DECISION: We parse *bold* and _italic_ inline ourselves rather than using a markdown
 // library because (1) WhatsApp uses its own formatting syntax, not standard Markdown,
 // (2) a full markdown parser (e.g. react-markdown) adds ~30KB for features we don't need,
@@ -188,7 +198,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             style={{
               fontSize: '12.5px',
               fontWeight: 'bold',
-              color: '#00a884',
+              color: SENDER_COLORS[senderName] ?? '#00a884',
               marginBottom: '2px',
               lineHeight: 1.2,
             }}
