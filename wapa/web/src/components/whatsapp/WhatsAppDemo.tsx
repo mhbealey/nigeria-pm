@@ -45,7 +45,7 @@ const INITIAL_CHATS: ChatData[] = [
     avatarColor: '#00a884',
     isGroup: true,
     messages: [...groupMessages],
-    lastMessage: 'Nice one Sam 👏',
+    lastMessage: 'Want me to escalate?',
     timestamp: '9:41 AM',
     unreadCount: 2,
   },
@@ -269,6 +269,24 @@ export default function WhatsAppDemo() {
     setIsPlaying(true);
     scenarioStep.current = 0;
 
+    const executeStoreAction = (step: (typeof scenario.steps)[number]) => {
+      if (!step.storeAction) return;
+      const store = useSimulationStore.getState();
+      const task = store.findTask(step.storeAction.taskQuery);
+      if (!task) return;
+      switch (step.storeAction.type) {
+        case 'complete':
+          store.completeTask(task.id);
+          break;
+        case 'block':
+          store.blockTask(task.id, step.storeAction.reason);
+          break;
+        case 'unblock':
+          store.unblockTask(task.id);
+          break;
+      }
+    };
+
     const playNext = () => {
       const step = scenario.steps[scenarioStep.current];
       if (!step) {
@@ -289,9 +307,9 @@ export default function WhatsAppDemo() {
             addMessage(msg);
             playSound('received');
 
-            // Handle board sync for scenario steps
+            // Update simulation store first, then sync board
+            executeStoreAction(step);
             if (step.syncAction) {
-              // For scenarios, directly manipulate the board state
               handleSyncAction(step.syncAction);
             }
 
@@ -445,7 +463,7 @@ export default function WhatsAppDemo() {
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.3 }}
       className="h-full flex flex-col"
-      style={{ width: isTablet ? 340 : 420, flexShrink: 0 }}
+      style={{ width: isTablet ? '35%' : '40%', flexShrink: 0 }}
     >
       <TrelloBoard
         columns={boardStore.columns}
@@ -581,13 +599,15 @@ export default function WhatsAppDemo() {
     );
   }
 
-  // Desktop: full split view
+  // Desktop: full split view — 60% WhatsApp / 40% board
   return (
     <div className={`h-screen w-screen flex ${outerBg}`}>
-      <div className="w-[360px] shrink-0 h-full">
-        <ChatList selectedChatId={activeChatId} onSelectChat={handleSelectChat} chats={chatListData} />
+      <div style={{ width: showBoard ? '60%' : '100%', display: 'flex', transition: 'width 0.3s ease' }} className="h-full">
+        <div className="w-[320px] shrink-0 h-full">
+          <ChatList selectedChatId={activeChatId} onSelectChat={handleSelectChat} chats={chatListData} />
+        </div>
+        <div className="flex-1 h-full">{chatWindow}</div>
       </div>
-      <div className="flex-1 h-full">{chatWindow}</div>
       <AnimatePresence>{boardPanel}</AnimatePresence>
       {demoControls}
     </div>

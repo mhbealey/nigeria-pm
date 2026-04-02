@@ -56,7 +56,7 @@ export const initialMessages: ChatMessage[] = [
   {
     id: 'msg-6',
     content:
-      "Found it! 📋 *Website Redesign*\n4 lists: Todo (3) · In Progress (3) · Blocked (2) · Done (4)\n12 cards total.\n\nI'll keep this board in sync with your WhatsApp group. Add me to the group and I'll start listening! 👂",
+      "Found it! 📋 *Website Redesign*\n4 lists: Todo (2) · In Progress (3) · Blocked (1) · Done (4)\n9 cards total.\n\nI'll keep this board in sync with your WhatsApp group. Add me to the group and I'll start listening! 👂",
     direction: 'in',
     timestamp: new Date(Date.now() - 86400000 + 122000).toISOString(),
     readStatus: 'read',
@@ -65,39 +65,40 @@ export const initialMessages: ChatMessage[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// "Website Redesign" group chat — recent history
+// "Website Redesign" group chat — pre-loaded v4 content
 // ---------------------------------------------------------------------------
 export const groupMessages: ChatMessage[] = [
   {
     id: 'grp-1',
-    content: 'I finished the hero section design 🎨',
+    content: 'Hero section design is done! Just pushed the final version to staging 🎨',
     direction: 'in',
-    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
     readStatus: 'read',
     senderName: 'Maya',
   },
   {
     id: 'grp-2',
-    content: 'Looks great Maya! Shipping to staging now.',
+    content: 'Looks amazing Maya 🔥 Shipping it to staging now.',
     direction: 'in',
-    timestamp: new Date(Date.now() - 3600000 * 4.5).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 2.8).toISOString(),
     readStatus: 'read',
     senderName: 'Jordan',
   },
   {
     id: 'grp-3',
     content:
-      '📌 Heads up from Trello — *Fix payment gateway* has been In Progress for 5 days and is now overdue.',
+      'Nice work Maya! Want me to mark *Hero section design* as Done on Trello?',
     direction: 'in',
-    timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 2.5).toISOString(),
     readStatus: 'read',
     senderName: 'WAPA',
+    quickReplies: ['✅ Mark as Done', 'Not yet'],
   },
   {
     id: 'grp-4',
-    content: "I'll ping the client about those Stripe keys today.",
+    content: "I'll ping the client about those Stripe API keys today. Payment gateway has been blocked too long.",
     direction: 'out',
-    timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
     readStatus: 'read',
     senderName: 'Alex',
   },
@@ -105,32 +106,19 @@ export const groupMessages: ChatMessage[] = [
     id: 'grp-5',
     content: 'SEO tags are almost done, pushing tonight 🚀',
     direction: 'in',
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 1.5).toISOString(),
     readStatus: 'read',
     senderName: 'Sam',
   },
   {
     id: 'grp-6',
     content:
-      '✓ Sam moved *Image optimization* → Done on Trello.\nSprint 4: 4/12 complete (33%)',
+      '📌 Heads up — *Fix payment gateway* has been blocked for 5 days and is now overdue. Want me to escalate?',
     direction: 'in',
     timestamp: new Date(Date.now() - 3600000 * 1).toISOString(),
     readStatus: 'read',
     senderName: 'WAPA',
-    syncAction: {
-      type: 'move',
-      cardTitle: 'Image optimization',
-      fromColumn: 'In Progress',
-      toColumn: 'Done',
-    },
-  },
-  {
-    id: 'grp-7',
-    content: 'Nice one Sam 👏 sprint is picking up speed',
-    direction: 'in',
-    timestamp: new Date(Date.now() - 3600000 * 0.5).toISOString(),
-    readStatus: 'read',
-    senderName: 'Riley',
+    quickReplies: ['Yes, ping them', "No, I'll handle it"],
   },
 ];
 

@@ -8,10 +8,10 @@ import type { BoardCard, BoardColumn, SyncEvent, ColumnStatus, PMTool } from '..
 // ---------------------------------------------------------------------------
 const ASSIGNEE_COLORS: Record<string, string> = {
   Alex: '#25d366',
-  Maya: '#ff6b6b',
-  Jordan: '#4ecdc4',
-  Sam: '#ffd93d',
-  Riley: '#6c5ce7',
+  Maya: '#e91e63',
+  Jordan: '#2196f3',
+  Sam: '#ff9800',
+  Riley: '#9c27b0',
 };
 
 // ---------------------------------------------------------------------------

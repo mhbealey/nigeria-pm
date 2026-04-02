@@ -16,10 +16,10 @@ interface MessageBubbleProps {
 
 const SENDER_COLORS: Record<string, string> = {
   WAPA: '#00a884',
-  Maya: '#ff6b6b',
-  Jordan: '#4ecdc4',
-  Sam: '#ffd93d',
-  Riley: '#6c5ce7',
+  Maya: '#e91e63',
+  Jordan: '#2196f3',
+  Sam: '#ff9800',
+  Riley: '#9c27b0',
   Alex: '#25d366',
   'Alex Okonkwo': '#25d366',
 };

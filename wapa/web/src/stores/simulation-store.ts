@@ -83,21 +83,17 @@ function makeCreatedAt(daysAgo: number): string {
 
 const INITIAL_TASKS: SimTask[] = [
   // DONE (4)
-  { id: 't-1', title: 'Design landing page hero section', status: 'done', priority: 'high', assignee: USERS[1], dueDate: makeDueDate(-4), notes: ['Client approved the blue gradient'], createdAt: makeCreatedAt(8) },
-  { id: 't-2', title: 'Implement responsive navigation', status: 'done', priority: 'high', assignee: USERS[0], dueDate: makeDueDate(-3), notes: [], createdAt: makeCreatedAt(8) },
-  { id: 't-3', title: 'Deploy staging environment', status: 'done', priority: 'high', assignee: USERS[2], dueDate: makeDueDate(-5), notes: [], createdAt: makeCreatedAt(8) },
-  { id: 't-4', title: 'Dark mode support', status: 'done', priority: 'low', assignee: USERS[0], dueDate: makeDueDate(-1), notes: [], createdAt: makeCreatedAt(7) },
-  // IN PROGRESS (3)
-  { id: 't-5', title: 'Build contact form with validation', status: 'in_progress', priority: 'medium', assignee: USERS[2], dueDate: makeDueDate(1), notes: ['Using react-hook-form + zod'], createdAt: makeCreatedAt(6) },
-  { id: 't-6', title: 'SEO meta tags and sitemap', status: 'in_progress', priority: 'medium', assignee: USERS[3], dueDate: makeDueDate(2), notes: [], createdAt: makeCreatedAt(5) },
-  { id: 't-7', title: 'Integrate analytics dashboard', status: 'in_progress', priority: 'high', assignee: USERS[4], dueDate: makeDueDate(3), notes: [], createdAt: makeCreatedAt(4) },
-  // TODO (3)
-  { id: 't-8', title: 'Set up analytics tracking', status: 'todo', priority: 'low', assignee: USERS[3], dueDate: makeDueDate(4), notes: [], createdAt: makeCreatedAt(5) },
-  { id: 't-9', title: 'Write E2E tests for checkout', status: 'todo', priority: 'high', assignee: USERS[4], dueDate: makeDueDate(5), notes: [], createdAt: makeCreatedAt(3) },
-  { id: 't-10', title: 'Accessibility audit', status: 'todo', priority: 'medium', assignee: USERS[4], dueDate: makeDueDate(6), notes: [], createdAt: makeCreatedAt(2) },
-  // BLOCKED (2)
-  { id: 't-11', title: 'Fix payment gateway integration', status: 'blocked', priority: 'urgent', assignee: USERS[2], dueDate: makeDueDate(0), blockReason: 'Waiting for Stripe API keys', notes: ['Waiting for Stripe API keys from client'], createdAt: makeCreatedAt(7) },
-  { id: 't-12', title: 'Optimize images and lazy loading', status: 'blocked', priority: 'medium', assignee: USERS[1], dueDate: makeDueDate(3), blockReason: 'Needs final assets from design team', notes: ['Needs final assets from design team'], createdAt: makeCreatedAt(4) },
+  { id: 't-1', title: 'Homepage layout', status: 'done', priority: 'high', assignee: USERS[1], dueDate: makeDueDate(-4), notes: ['Client approved the layout'], createdAt: makeCreatedAt(8) },
+  { id: 't-2', title: 'Logo redesign', status: 'done', priority: 'medium', assignee: USERS[0], dueDate: makeDueDate(-3), notes: [], createdAt: makeCreatedAt(8) },
+  { id: 't-3', title: 'Navigation bar', status: 'done', priority: 'high', assignee: USERS[2], dueDate: makeDueDate(-5), notes: [], createdAt: makeCreatedAt(8) },
+  { id: 't-4', title: 'Color palette update', status: 'done', priority: 'low', assignee: USERS[0], dueDate: makeDueDate(-1), notes: [], createdAt: makeCreatedAt(7) },
+  // IN PROGRESS (3) — payment gateway is overdue + blocked
+  { id: 't-5', title: 'API integration', status: 'in_progress', priority: 'high', assignee: USERS[2], dueDate: makeDueDate(2), notes: [], createdAt: makeCreatedAt(6) },
+  { id: 't-6', title: 'SEO meta tags', status: 'in_progress', priority: 'medium', assignee: USERS[3], dueDate: makeDueDate(3), notes: [], createdAt: makeCreatedAt(5) },
+  { id: 't-7', title: 'Fix payment gateway', status: 'blocked', priority: 'urgent', assignee: USERS[2], dueDate: makeDueDate(-2), blockReason: 'Waiting for Stripe API keys', notes: ['Waiting for Stripe API keys from client'], createdAt: makeCreatedAt(7) },
+  // TODO (2)
+  { id: 't-8', title: 'Write E2E tests', status: 'todo', priority: 'high', assignee: USERS[4], dueDate: makeDueDate(5), notes: [], createdAt: makeCreatedAt(3) },
+  { id: 't-9', title: 'Analytics setup', status: 'todo', priority: 'low', assignee: USERS[3], dueDate: makeDueDate(6), notes: [], createdAt: makeCreatedAt(2) },
 ];
 
 const INITIAL_SPRINT: SimSprint = {
@@ -113,7 +109,7 @@ const INITIAL_PROJECT: SimProject = {
   name: 'Website Redesign',
 };
 
-let taskCounter = 13;
+let taskCounter = 10;
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
   project: { ...INITIAL_PROJECT },
@@ -251,7 +247,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   resetState: () => {
-    taskCounter = 13;
+    taskCounter = 10;
     set({
       project: { ...INITIAL_PROJECT },
       sprint: { ...INITIAL_SPRINT },
